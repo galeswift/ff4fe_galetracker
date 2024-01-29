@@ -33,7 +33,7 @@ export function KIPanel()
     return  <div className="ki_root">
         {   currentkiList.map((item, idx)=>
         {
-            return <div className={"ki_item " + (item.owned ? "ki_owned_bg" : "ki_unowned_bg")}><img key={idx} src={item.imagePath} className={item.owned ? "ki_owned" : "ki_unowned"} onClick={()=>onClickedKI(idx)}/></div>            
+            return <div key={idx} className={"ki_item " + (item.owned ? "ki_owned_bg" : "ki_unowned_bg")}><img key={idx} src={item.imagePath} className={item.owned ? "ki_owned" : "ki_unowned"} onClick={()=>onClickedKI(idx)}/></div>            
         })
     }
     </div>

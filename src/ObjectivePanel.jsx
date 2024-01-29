@@ -1,10 +1,12 @@
-import { React, useState, useRef } from 'react'
-import { Switch, Flex, Button, Text, ScrollArea, TextField} from '@radix-ui/themes';
+import { React, useState, useRef, forwardRef } from 'react'
+import { Switch, Flex, Button, Text, ScrollArea, TextField, radixGetMatchingGrayScale} from '@radix-ui/themes';
 import * as Popover from '@radix-ui/react-popover';
 import { MixerHorizontalIcon, Cross2Icon, MagnifyingGlassIcon } from '@radix-ui/react-icons'
 
-function ObjectiveList() {
-    return [
+function ObjectiveList(filterList) {
+    var filterTexts = filterList.toLowerCase().split(' ').filter(item=>item!="");
+
+    var result = [
         { name: "Classic Forge the Crystal", complete: false },
         { name: "Classic Giant", complete: false },
         { name: "Fiends ", complete: false },
@@ -95,20 +97,22 @@ function ObjectiveList() {
         { name: "Return the Pan to Yang's wife", complete: false },
         { name: "Trade away the Pink Tail", complete: false },
         { name: "Unlock the Pass door in Toroia", complete: false }
-    ]
+    ];
+    
+    const sortedList = result.sort((lhs,rhs)=> {return lhs.name.localeCompare(rhs.name)});
+    return sortedList.filter((item)=> (filterTexts.length == 0 || filterTexts.filter((filterString)=>item.name.toLowerCase().includes(filterString)).length > 0 ));
 }
 
-function ObjectivePopup(props) {
-    const allObjectives = ObjectiveList();
-    var filterTexts = props.filter.toLowerCase().split(' ').filter(item=>item!="");
-    return <>
+const ObjectivePopup = forwardRef((props, ref)=> {
+    const allObjectives = ObjectiveList(props.filter);
+    return <Flex direction="column" justify="start" width="100%">
         {
-            allObjectives.filter((item)=> (filterTexts.length == 0 || filterTexts.filter((filterString)=>item.name.toLowerCase().includes(filterString)).length > 0 )).map((item, idx) => {
-                return <div onClick={()=>props.onSelectObjective(item.name)} className="objective_selector_item" key={idx}>{item.name}</div>
+            allObjectives.map((item, idx) => {
+                return <button ref={idx==0?ref:null} onClick={()=>props.onSelectObjective(item.name)} className="objective_selector_item" key={idx}>{item.name}</button>
             })
         }
-    </>;
-}
+    </Flex>;
+});
 
 function SearchBox(props)
 {
@@ -127,6 +131,7 @@ function SingleObjective() {
     const [objectiveName, setObjectiveName] = useState("Objective")
     const [popupOpen, setPopupOpen] = useState(false);
 
+    const popupContent = useRef(null);
     const onTyped = (event)=>
     {
         setFilterText(event.currentTarget.value);
@@ -137,13 +142,17 @@ function SingleObjective() {
         console.log(event);
         if ( event.key == "Enter")
         {
-            var filterTexts = filterText.toLowerCase().split(' ').filter(item=>item!="");
-            const bestObjectives = ObjectiveList().filter((item)=> (filterTexts.length == 0 || filterTexts.filter((filterString)=>item.name.toLowerCase().includes(filterString)).length > 0 ));
+            const bestObjectives = ObjectiveList(filterText);
             if (bestObjectives.length > 0)
             {
                 setObjectiveName(bestObjectives[0].name);
                 setPopupOpen(false);
             }
+        }
+        else if (event.key=="ArrowDown")
+        {
+            console.log("Current popup is "+popupContent.current);
+            popupContent.current.focus();
         }
     }
 
@@ -153,25 +162,26 @@ function SingleObjective() {
         setPopupOpen(false);
     }
 
-    return <Flex gap="2">
-        <Switch color="green"></Switch>{objectiveName}
-        <Popover.Root open={popupOpen}>
+    return <div className="objective_single_root" >
+        <Switch color="green"></Switch>
+        <div className="objective_text">{objectiveName}</div>
+        <Popover.Root open={popupOpen} onOpenChange={setPopupOpen}>
             <Popover.Trigger asChild>
-                <button className="IconButton" aria-label="Update dimensions" onClick={()=>{setPopupOpen(true); setFilterText("")}}>
+                <button className="IconButton" aria-label="OpenObjectives" onClick={()=>{setPopupOpen(true); setFilterText("")}}>
                     <MixerHorizontalIcon />
                 </button>
             </Popover.Trigger>
             <Popover.Portal>
-                <Popover.Content className="PopoverContent" sideOffset={5} side="right" onOpenAutoFocus="true">
+                <Popover.Content className="PopoverContent" sideOffset={5} side="right">
                     <SearchBox onType={onTyped} onKeyDown={onKeyWentDown}/>
                     <div className="objective_popup">
-                        <ObjectivePopup filter={filterText} onSelectObjective={onSelectObjective}></ObjectivePopup>
+                        <ObjectivePopup ref={popupContent} filter={filterText} onSelectObjective={onSelectObjective}></ObjectivePopup>
                         <Popover.Arrow className="PopoverArrow" />
                     </div> 
                 </Popover.Content>
             </Popover.Portal>
         </Popover.Root>
-    </Flex>
+    </div>
 }
 export function ObjectivePanel() {
     return <div className="objective_root">

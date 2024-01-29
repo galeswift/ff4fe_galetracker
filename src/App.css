@@ -8,6 +8,8 @@
 @import '@radix-ui/colors/green-dark.css';
 @import '@radix-ui/colors/red-dark.css';
 @import '@radix-ui/colors/orange.css';
+@import '@radix-ui/colors/black-alpha.css';
+@import '@radix-ui/colors/slate.css';
 
 @font-face {
   font-family: "AgencyFB";
@@ -40,7 +42,7 @@
   display:flex;
   justify-content: space-between;
   flex-direction: column;
-  align-items: center;
+  align-items: center;  
 }
 
 .root_footer
@@ -183,6 +185,7 @@
   display:flex;
   flex-direction: column;
   max-height:inherit;
+  gap:1px;
 }
 
 .objective_popup
@@ -193,6 +196,21 @@
   background:var(--gray-4);
   max-height:40vh;
   overflow:auto;
+  max-width:40vw;
+}
+
+.objective_single_root
+{
+  display:flex;
+  justify-content: space-between;
+  align-items: flex-start;  
+  gap:5px;  
+}
+
+.objective_text
+{
+  width:100%;
+  text-align: left;
 }
 
 .objective_search
@@ -201,9 +219,11 @@
 }
 .objective_selector_item
 {
-  width:100%;
-  color:var(--gray-11);
+  color:var(--black-a9);
+  text-align: left;
+  border-color: transparent;  
 }
+
 .objective_selector_item:hover
 {
   color:var(--gray-3);
