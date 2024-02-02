@@ -37,12 +37,13 @@ function App() {
   return (
     <Theme appearance='inherit' accentColor="gray" panelBackground="translucent">
       <div className="root_panel">
+        <header className="header"/>
         <CharacterPanel />
         <Separator size="4" />
-        <Flex align="center" gap="3">
+        <div className="tracker_section">
           <ObjectivePanel />
           <KIPanel />
-        </Flex>
+        </div>
         <Separator size="4" />
         <LocationPanel />
         <Separator size="4" />

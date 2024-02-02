@@ -162,9 +162,11 @@ function SingleObjective() {
         setPopupOpen(false);
     }
 
-    return <div className="objective_single_root" >
-        <Switch color="green"></Switch>
-        <div className="objective_text">{objectiveName}</div>
+    return <div className="objective_single_root" >            
+            <label className="objective_text">
+                <Switch color="green" ></Switch>
+                {objectiveName}
+            </label>
         <Popover.Root open={popupOpen} onOpenChange={setPopupOpen}>
             <Popover.Trigger asChild>
                 <button className="IconButton" aria-label="OpenObjectives" onClick={()=>{setPopupOpen(true); setFilterText("")}}>
@@ -190,6 +192,15 @@ export function ObjectivePanel() {
         <SingleObjective />
         <SingleObjective />
         <SingleObjective />
+        <SingleObjective />
+        <SingleObjective />
+        <SingleObjective />
+        <SingleObjective />
+        <SingleObjective />
+        <SingleObjective />
+        <SingleObjective />
+
+        
     </div>
 
 }
