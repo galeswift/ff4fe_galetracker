@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Served at www.ff4fedraft.com/tracker/
-  base: '/tracker/',
+  // Served from the root of tracker.galeswift.com
+  base: '/',
   plugins: [react()],
 })

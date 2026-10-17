@@ -1,4 +1,4 @@
-# Production image for the tracker, served by nginx at www.ff4fedraft.com/tracker/ (deployed by Coolify).
+# Production image for the tracker, served by nginx at tracker.galeswift.com (deployed by Coolify).
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
