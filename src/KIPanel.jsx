@@ -1,41 +1,47 @@
-import { React, useState } from 'react'
-export function KIPanel()
-{
-    const kiList = [
-        { imagePath:"images/ki_baronkey.png", owned:false },        
-        { imagePath:"images/ki_lucakey.png", owned:false },
-        { imagePath:"images/ki_magmakey.png", owned:false },
-        { imagePath:"images/ki_towerkey.png", owned:false },
-        { imagePath:"images/ki_dark.png", owned:false },
-        { imagePath:"images/ki_earth.png", owned:false },
-        { imagePath:"images/ki_hook.png", owned:false },
-        { imagePath:"images/ki_harp.png", owned:false },
-        { imagePath:"images/ki_package.png", owned:false },
-        { imagePath:"images/ki_Pan.png", owned:false },        
-        { imagePath:"images/ki_sandruby.png", owned:false },
-        { imagePath:"images/ki_rattail.png", owned:false },
-        { imagePath:"images/ki_adamant.png", owned:false },
-        { imagePath:"images/ki_legend.png", owned:false },
-        { imagePath:"images/ki_crystal.png", owned:false },
-        { imagePath:"images/ki_pinktail.png", owned:false },        
-        { imagePath:"images/ki_pass.png", owned:false },
-    ];
+import { KEY_ITEMS, KeyItemState } from './data/keyItems';
+import { goModeStatus, hasKeyItemBonus, KeyItemGoStatus, keyItemCount, maxKeyItems } from './logic/goMode';
+import { useTracker } from './state/TrackerContext';
+import { asset } from './asset';
 
-    const [currentkiList, setCurrentkiList] = useState(kiList);
-    
-    const onClickedKI = (kiIDX) =>
-    {
-        const newKIList = currentkiList.map((item, index)=>{
-            return index==kiIDX ? {imagePath:item.imagePath, owned:!item.owned} : item;
-        })
-        setCurrentkiList(newKIList);
-    }
-    return  <div className="ki_root">
-        {   currentkiList.map((item, idx)=>
-        {
-            return <div key={idx} className={"ki_item " + (item.owned ? "ki_owned_bg" : "ki_unowned_bg")}><img key={idx} src={item.imagePath} className={item.owned ? "ki_owned" : "ki_unowned"} onClick={()=>onClickedKI(idx)}/></div>            
-        })
-    }
-    </div>
-    
+const STATE_CLASS = {
+    [KeyItemState.NONE]: "ki_unowned",
+    [KeyItemState.FOUND]: "ki_owned",
+    [KeyItemState.USED]: "ki_owned ki_used",
+};
+
+function MistToggle() {
+    const { state, dispatch } = useTracker();
+    return <button className={"ki_item mist_toggle " + (state.mist ? "ki_owned" : "ki_unowned")}
+        title="Mist Dragon defeated (opens Mist Village)" onClick={() => dispatch({ type: 'toggleMist' })}>
+        <img src={asset(state.mist ? "images/mistdragon.png" : "images/mistdragon_2.png")} alt="Mist Dragon" />
+    </button>;
+}
+
+export function KIPanel() {
+    const { state, flags, settings, dispatch } = useTracker();
+    const { itemStatus } = goModeStatus(state, flags);
+    const showGoMode = settings.objectiveTracking;
+
+    return <div className="ki_root">
+        {KEY_ITEMS.map((keyItem) => {
+            const value = state.keyItems[keyItem.id];
+            const go = showGoMode ? itemStatus[keyItem.id] : KeyItemGoStatus.NONE;
+            return <button key={keyItem.id} title={keyItem.name}
+                className={`ki_item ${STATE_CLASS[value]} go_${go}`}
+                onClick={() => dispatch({ type: 'cycleKeyItem', keyItem: keyItem.id })}>
+                <img src={asset(keyItem.image)} alt={keyItem.name} />
+                {value === KeyItemState.USED && <img className="ki_done" src={asset("images/done.png")} alt="" />}
+            </button>;
+        })}
+        {flags.keyItems.noFree && <MistToggle />}
+        <div className={"ki_count" + (hasKeyItemBonus(state, flags) ? " ki_bonus" : "")}>
+            {keyItemCount(state, flags)}/{maxKeyItems(flags)}
+        </div>
+    </div>;
+}
+
+export function GoModeBanner() {
+    const { state, flags } = useTracker();
+    const { inGoMode } = goModeStatus(state, flags);
+    return <div className={"go_mode_banner" + (inGoMode ? " in_go_mode" : "")} aria-hidden={!inGoMode}>Go Mode!</div>;
 }

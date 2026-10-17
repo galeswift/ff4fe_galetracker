@@ -1,92 +1,58 @@
-import { React, useState,useRef } from 'react'
-import { Button, Text, Strong,  Separator } from '@radix-ui/themes';
+import { useEffect, useState } from 'react';
+import { Button } from '@radix-ui/themes';
+import { elapsedMs, formatTime, splitTime } from './logic/timer';
+import { useTracker } from './state/TrackerContext';
 
-function convertHMS(value) {
-    const sec = parseInt(value, 10) / 1000; // convert value to number if it's string
-    let hours = Math.floor(sec / 3600); // get hours
-    let minutes = Math.floor((sec - (hours * 3600)) / 60); // get minutes
-    let seconds = Math.floor(sec - (hours * 3600) - (minutes * 60)); //  get seconds
-    let ms = Math.floor(value % 1000 / 10);
-    // add 0 if value < 10; Example: 2 => 02
-    if (hours < 10) { hours = "0" + hours; }
-    if (minutes < 10) { minutes = "0" + minutes; }
-    if (seconds < 10) { seconds = "0" + seconds; }
-    if (ms < 10) { ms = "0" + ms; }
-    return <div id="timerText" className="timer_text">{hours + ':' + minutes + ':' + seconds + ':' }<span className="timer_ms">{ms}</span></div>;
+// Re-renders every animation frame while the timer runs.
+function useNow(running) {
+    const [now, setNow] = useState(Date.now());
+    useEffect(() => {
+        if (!running) return undefined;
+        let frame;
+        const tick = () => {
+            setNow(Date.now());
+            frame = requestAnimationFrame(tick);
+        };
+        frame = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(frame);
+    }, [running]);
+    return now;
 }
 
-function copyTimerToClipboard(timeDiv)
-{
-    var timeString = timeDiv.textContent;
-    // navigator clipboard api needs a secure context (https)
+async function copyText(text) {
+    // navigator.clipboard needs a secure context (https); fall back to a hidden textarea.
     if (navigator.clipboard && window.isSecureContext) {
-        // navigator clipboard api method'
-        return navigator.clipboard.writeText(timeString.substring(0, timeString.length - 3));
-    } else {
-        // text area method
-        let textArea = document.createElement("textarea");
-        textArea.value = timeString.substring(0, timeString.length - 3);
-        // make the textarea out of viewport
-        textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        textArea.style.top = "-999999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        return new Promise((res, rej) => {
-            // here the magic happens
-            document.execCommand('copy') ? res() : rej();
-            textArea.remove();
-        });
+        return navigator.clipboard.writeText(text);
     }
-};
-export function TimerPanel()
-{
-    const [timeString, setTimeString] = useState(convertHMS(0));
-    const [timerStarted, setTimerStarted] = useState(false);
-    const startTime = useRef(0);
-    const bankedTime = useRef(0);
-    const timerObject = useRef(null);
-    const timerTextRef = useRef(timeString);
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    textArea.remove();
+}
 
-    const startTimer = ()=>{
-        startTime.current = Date.now();
-        timerObject.current = setInterval(timerUpdate, 10);
-        setTimerStarted( true );
-    };
+export function TimerPanel() {
+    const { state, dispatch } = useTracker();
+    const { timer } = state;
+    const now = useNow(timer.running);
+    const elapsed = elapsedMs(timer, timer.running ? Math.max(now, timer.startedAt) : now);
+    const { hms, hundredths } = splitTime(elapsed);
+    const started = timer.running || timer.bankedMs > 0;
 
-    const pauseTimer = ()=>{
-        bankedTime.current = Date.now() - startTime.current;
-        clearInterval(timerObject.current);
-        setTimerStarted( false );
-    };
-
-    const resetTimer = ()=>
-    {
-        startTime.current = 0;
-        bankedTime.current = 0;
-        clearInterval(timerObject.current);
-        setTimerStarted( false );      
-        setTimeString(convertHMS(0));  
-    };
-
-    const timerUpdate = () =>
-    {        
-        setTimeString(convertHMS(Date.now() - startTime.current + bankedTime.current));
-    }    
-
-    return <div id="timer_root">
-            <div className={timerStarted ? "timer_running" : "timer_stopped" }>
-                {timeString}
-            </div>
-            <div className="timer_buttons">
-                <Button size="2" disabled={timerStarted} variant="solid" id="startButton" onClick={startTimer}>Start</Button>
-                <Separator size="2" orientation="vertical"/>
-                <Button size="2" disabled={!timerStarted} variant="solid" id="pauseButton" onClick={pauseTimer}>Pause</Button>
-                <Separator size="2" orientation="vertical"/>
-                <Button size="2" variant="solid" id="resetButton" onClick={resetTimer}>Reset</Button>
-                <Separator size="2" orientation="vertical"/>
-                <Button size="2" variant="solid" id="copyToClipboardButton" onClick={()=>copyTimerToClipboard(document.getElementById("timerText"))}>Copy</Button>
-            </div>
-        </div>    
+    return <div className="timer_root">
+        <div className={"timer_text " + (timer.running ? "timer_running" : started ? "timer_paused" : "timer_stopped")}>
+            <span className="timer_hms">{hms}:</span>
+            <span className="timer_ms">{hundredths}</span>
+        </div>
+        <div className="timer_buttons">
+            {timer.running
+                ? <Button size="2" variant="solid" onClick={() => dispatch({ type: 'pauseTimer' })}>Pause</Button>
+                : <Button size="2" variant="solid" onClick={() => dispatch({ type: 'startTimer' })}>{started ? "Resume" : "Start"}</Button>}
+            <Button size="2" variant="solid" disabled={!started} onClick={() => dispatch({ type: 'resetTimer' })}>Reset</Button>
+            <Button size="2" variant="solid" onClick={() => copyText(formatTime(elapsed))}>Copy</Button>
+        </div>
+    </div>;
 }

@@ -1,91 +1,99 @@
-import { React, useEffect, useState } from 'react'
-import './App.css'
+import { useEffect, useState } from 'react';
+import './App.css';
 import '@radix-ui/themes/styles.css';
-import { CharacterPanel } from './CharacterPanel'
-import { KIPanel } from './KIPanel'
+import { Separator, Theme } from '@radix-ui/themes';
+import { CharacterPanel } from './CharacterPanel';
+import { GoModeBanner, KIPanel } from './KIPanel';
 import { LocationPanel } from './LocationPanel';
 import { TimerPanel } from './TimerPanel';
 import { ObjectivePanel } from './ObjectivePanel';
-
-import { Flex, Tabs, Button, Box, Container, Separator } from '@radix-ui/themes';
-import { Theme } from '@radix-ui/themes';
-import { DecorativeBox } from './Decorations'
-
-
-
-function Footer(props) {
-
-  return <div className="root_footer">
-    <Button size="2" onClick={props.onDarkModeChanged}>Dark Mode</Button>
-    <Button size="2" onClick={props.onTrackingModeChanged}>Flags</Button>
-    <Button size="2" onClick={props.onDarkModeChanged}>Feedback</Button>
-  </div>;
-}
+import { BossPanel } from './BossPanel';
+import { FlagScreen } from './FlagScreen';
+import { Footer } from './Footer';
+import { parseFlags } from './logic/flags';
+import { DEFAULT_SETTINGS } from './state/settings';
+import { load, save, StorageKey } from './state/storage';
+import { hasSavedTracker, TrackerProvider, useTracker } from './state/TrackerContext';
 
 function TrackingMode() {
-  return <> 
-  <CharacterPanel />
-    <Separator size="4" />
-    <div className="tracker_section">
-      <ObjectivePanel />
-      <KIPanel />
-    </div>
-    <Separator size="4" />
-    <LocationPanel />
-    <Separator size="4" />
-    <TimerPanel />
-    <Separator size="4" />
-  </>;
+    const { settings } = useTracker();
+    return <>
+        {settings.characterTracking && <>
+            <CharacterPanel />
+            <Separator size="4" />
+        </>}
+        <div className="tracker_section">
+            {settings.objectiveTracking && <ObjectivePanel />}
+            <div className="ki_column">
+                <KIPanel />
+                {settings.objectiveTracking && <GoModeBanner />}
+            </div>
+        </div>
+        {settings.enhancedTracking && <>
+            <Separator size="4" />
+            <LocationPanel />
+            {settings.bossTracking && <>
+                <Separator size="4" />
+                <BossPanel />
+            </>}
+        </>}
+        <Separator size="4" />
+        <TimerPanel />
+    </>;
 }
 
-function FlagsetMode(props)
-{
-  const onTextAreaChanged = (event) =>
-  {
-    props.onFlagsetChanged(event.target.value);
-  }
+function TrackerScreens({ settings, onSettingsChanged, onDarkModeChanged }) {
+    const { dispatch } = useTracker();
+    const [flagset, setFlagset] = useState(() => load(StorageKey.FLAGSET, ''));
+    const [hasTracker, setHasTracker] = useState(hasSavedTracker);
+    const [inTrackingMode, setTrackingMode] = useState(hasTracker);
 
- return <div className="flagset_mode_root">
-    <header>Enter Flagset</header>
-    <textarea className="flagset_text_area" placeholder="Enter Flagset Here" onChange={onTextAreaChanged} value={props.flagset}>
-    </textarea>
-  </div>;
+    const onFlagsetChanged = (value) => {
+        setFlagset(value);
+        save(StorageKey.FLAGSET, value);
+    };
+
+    const startTracker = () => {
+        dispatch({ type: 'reset', flagset, flags: parseFlags(flagset) });
+        setHasTracker(true);
+        setTrackingMode(true);
+    };
+
+    return <div className="root_panel">
+        {inTrackingMode
+            ? <TrackingMode />
+            : <FlagScreen flagset={flagset} onFlagsetChanged={onFlagsetChanged} settings={settings} onSettingsChanged={onSettingsChanged}
+                onStart={startTracker} canResume={hasTracker} onResume={() => setTrackingMode(true)} />}
+        <Footer inTrackingMode={inTrackingMode} onDarkModeChanged={onDarkModeChanged}
+            onTrackingModeChanged={() => setTrackingMode(!inTrackingMode)} canTrack={hasTracker} />
+    </div>;
 }
 
 function App() {
-  const [darkMode, setDarkMode] = useState(JSON.parse(localStorage.getItem('saved_darkMode')) || false);  
-  const [flagset, setFlagset] = useState(JSON.parse(localStorage.getItem('saved_flagset')) || "O1:quest_forge/random:6,tough_quest/req:6/win:crystal Kmain/summon/moon/nofree Pkey Cstandard/nofree/distinct:9/start:any/no:fusoya/j:abilities Tpro Sstandard Bstandard/alt:gauntlet Etoggle Glife/sylph/backrow -kit:basic -noadamants -spoon -smith:alt");
+    const [darkMode, setDarkMode] = useState(() => load(StorageKey.DARK_MODE, false));
+    const [settings, setSettings] = useState(() => ({ ...DEFAULT_SETTINGS, ...load(StorageKey.SETTINGS, {}) }));
 
-  const [inTrackingMode, setTrackingMode] = useState(false);
+    useEffect(() => {
+        document.body.classList.toggle('dark', darkMode);
+    }, [darkMode]);
 
-  useEffect(() => {
-    document.body.classList.toggle('dark', darkMode);
-  }, [darkMode]);
+    const onDarkModeChanged = () => {
+        save(StorageKey.DARK_MODE, !darkMode);
+        setDarkMode(!darkMode);
+    };
 
-  const onDarkModeChanged = () => {
-    localStorage.setItem('saved_darkMode', !darkMode);
-    setDarkMode(!darkMode);
-  };
+    const onSettingsChanged = (value) => {
+        save(StorageKey.SETTINGS, value);
+        setSettings(value);
+    };
 
-  const onTrackingModeChanged = () => {
-    setTrackingMode(!inTrackingMode);
-  };
-
-  const onFlagsetChanged = (flagset) => {
-    setFlagset(flagset);
-    console.log("Flagset changed "+ flagset);
-  };
-
-  return (
-    <Theme appearance='inherit' accentColor="gray" panelBackground="translucent">
-      <div className="root_panel">
-        <header className="header" />
-        { inTrackingMode && <TrackingMode/> }
-        { !inTrackingMode && <FlagsetMode onFlagsetChanged={onFlagsetChanged} flagset={flagset}/>}
-        <Footer onDarkModeChanged={onDarkModeChanged} onTrackingModeChanged={onTrackingModeChanged}/>
-      </div>
-    </Theme>
-  )
+    return (
+        <Theme appearance='inherit' accentColor="gray" panelBackground="translucent">
+            <TrackerProvider initialFlagset={load(StorageKey.FLAGSET, '')} settings={settings}>
+                <TrackerScreens settings={settings} onSettingsChanged={onSettingsChanged} onDarkModeChanged={onDarkModeChanged} />
+            </TrackerProvider>
+        </Theme>
+    );
 }
 
-export default App
+export default App;

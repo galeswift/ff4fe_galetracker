@@ -1,206 +1,183 @@
-import { React, useState, useRef, forwardRef } from 'react'
-import { Switch, Flex, Button, Text, ScrollArea, TextField, radixGetMatchingGrayScale} from '@radix-ui/themes';
-import * as Popover from '@radix-ui/react-popover';
-import { MixerHorizontalIcon, Cross2Icon, MagnifyingGlassIcon } from '@radix-ui/react-icons'
+import { useMemo, useState } from 'react';
+import { Popover, Switch, Tabs, TextField } from '@radix-ui/themes';
+import { MagnifyingGlassIcon, MinusIcon, MixerHorizontalIcon, PlusIcon } from '@radix-ui/react-icons';
+import { CollectKind, OBJECTIVES, ObjectiveCategory } from './data/objectives';
+import { ObjectiveItemKind, objectiveItemName, rewardName } from './logic/flags';
+import { darkMatterQuestProgress, objectiveGroupProgress } from './logic/objectives';
+import { formatTime } from './logic/timer';
+import { useTracker } from './state/TrackerContext';
 
-function ObjectiveList(filterList) {
-    var filterTexts = filterList.toLowerCase().split(' ').filter(item=>item!="");
+const RANDOM_CATEGORIES = [
+    { category: ObjectiveCategory.QUEST, label: "Quests" },
+    { category: ObjectiveCategory.BOSS, label: "Boss Hunts" },
+    { category: ObjectiveCategory.CHARACTER, label: "Character Hunts" },
+];
 
-    var result = [
-        { name: "Classic Forge the Crystal", complete: false },
-        { name: "Classic Giant", complete: false },
-        { name: "Fiends ", complete: false },
-        { name: "Dark Matter Hunt", complete: false },
-        { name: "Get Cecil", complete: false },
-        { name: "Get Kain", complete: false },
-        { name: "Get Rydia", complete: false },
-        { name: "Get Tellah", complete: false },
-        { name: "Get Edward", complete: false },
-        { name: "Get Rosa", complete: false },
-        { name: "Get Yang", complete: false },
-        { name: "Get Palom", complete: false },
-        { name: "Get Porom", complete: false },
-        { name: "Get Cid", complete: false },
-        { name: "Get Edge", complete: false },
-        { name: "Get FuSoYa", complete: false },
-        { name: "Defeat D.Mist", complete: false },
-        { name: "Defeat Officer", complete: false },
-        { name: "Defeat Octomamm", complete: false },
-        { name: "Defeat Antlion", complete: false },
-        { name: "Defeat Waterhag (boss version)", complete: false },
-        { name: "Defeat MomBomb", complete: false },
-        { name: "Defeat the Fabul Gauntlet", complete: false },
-        { name: "Defeat Milon", complete: false },
-        { name: "Defeat Milon Z.", complete: false },
-        { name: "Defeat D.Knight", complete: false },
-        { name: "Defeat the Guards (boss)", complete: false },
-        { name: "Defeat Karate", complete: false },
-        { name: "Defeat Baigan", complete: false },
-        { name: "Defeat Kainazzo", complete: false },
-        { name: "Defeat the Dark Elf (dragon form)", complete: false },
-        { name: "Defeat the Magus Sisters", complete: false },
-        { name: "Defeat Valvalis", complete: false },
-        { name: "Defeat Calbrena", complete: false },
-        { name: "Defeat Golbez", complete: false },
-        { name: "Defeat Dr. Lugae", complete: false },
-        { name: "Defeat the Dark Imps (boss)", complete: false },
-        { name: "Defeat K.Eblan and Q.Eblan", complete: false },
-        { name: "Defeat Rubicant", complete: false },
-        { name: "Defeat EvilWall", complete: false },
-        { name: "Defeat Asura", complete: false },
-        { name: "Defeat Leviatan", complete: false },
-        { name: "Defeat Odin", complete: false },
-        { name: "Defeat Bahamut", complete: false },
-        { name: "Defeat Elements", complete: false },
-        { name: "Defeat CPU", complete: false },
-        { name: "Defeat Pale Dim", complete: false },
-        { name: "Defeat Wyvern", complete: false },
-        { name: "Defeat Plague", complete: false },
-        { name: "Defeat the D.Lunars", complete: false },
-        { name: "Defeat Ogopogo", complete: false },
-        { name: "Defeat the boss of the Mist Cave", complete: false },
-        { name: "Defeat the boss of the Waterfall", complete: false },
-        { name: "Complete the Antlion Nest", complete: false },
-        { name: "Rescue the hostage on Mt. Hobs", complete: false },
-        { name: "Defend Fabul", complete: false },
-        { name: "Complete Mt. Ordeals", complete: false },
-        { name: "Defeat the bosses of Baron Inn", complete: false },
-        { name: "Liberate Baron Castle", complete: false },
-        { name: "Complete Cave Magnes", complete: false },
-        { name: "Complete the Tower of Zot", complete: false },
-        { name: "Defeat the bosses of Dwarf Castle", complete: false },
-        { name: "Defeat the boss of Lower Bab-il", complete: false },
-        { name: "Launch the Falcon", complete: false },
-        { name: "Complete the Sealed Cave", complete: false },
-        { name: "Defeat the queen at the Town of Monsters", complete: false },
-        { name: "Defeat the king at the Town of Monsters", complete: false },
-        { name: "Defeat the Baron Castle basement throne", complete: false },
-        { name: "Complete the Giant of Bab-il", complete: false },
-        { name: "Complete Cave Bahamut", complete: false },
-        { name: "Conquer the vanilla Murasame altar", complete: false },
-        { name: "Conquer the vanilla Crystal Sword altar", complete: false },
-        { name: "Conquer the vanilla White Spear altar", complete: false },
-        { name: "Conquer the vanilla Ribbon room", complete: false },
-        { name: "Conquer the vanilla Masamune altar", complete: false },
-        { name: "Burn village Mist with the Package", complete: false },
-        { name: "Cure the fever with the SandRuby", complete: false },
-        { name: "Unlock the sewer with the Baron Key", complete: false },
-        { name: "Break the Dark Elf's spell with the TwinHarp", complete: false },
-        { name: "Open the Toroia treasury with the Earth Crystal", complete: false },
-        { name: "Drop the Magma Key into the Agart well", complete: false },
-        { name: "Destroy the Super Cannon", complete: false },
-        { name: "Unlock the Sealed Cave", complete: false },
-        { name: "Raise the Big Whale", complete: false },
-        { name: "Trade away the Rat Tail", complete: false },
-        { name: "Have Kokkol forge Legend Sword with Adamant", complete: false },
-        { name: "Wake Yang with the Pan", complete: false },
-        { name: "Return the Pan to Yang's wife", complete: false },
-        { name: "Trade away the Pink Tail", complete: false },
-        { name: "Unlock the Pass door in Toroia", complete: false }
-    ];
-    
-    const sortedList = result.sort((lhs,rhs)=> {return lhs.name.localeCompare(rhs.name)});
-    return sortedList.filter((item)=> (filterTexts.length == 0 || filterTexts.filter((filterString)=>item.name.toLowerCase().includes(filterString)).length > 0 ));
+// Counters the player updates by hand. GP is counted in thousands, as the objectives are.
+const MANUAL_COUNTERS = {
+    [CollectKind.BOSSES]: { step: 1 },
+    [CollectKind.CHESTS]: { step: 1 },
+    [CollectKind.GP]: { step: 10, unit: "k GP" },
+};
+
+function Counter({ value, onChange, step = 1, label }) {
+    return <span className="counter">
+        <button className="IconButton" aria-label={`Less ${label}`} onClick={() => onChange(value - step)}><MinusIcon /></button>
+        <input className="counter_value" type="number" min="0" value={value} aria-label={label}
+            onChange={(event) => onChange(Number(event.target.value) || 0)} />
+        <button className="IconButton" aria-label={`More ${label}`} onClick={() => onChange(value + step)}><PlusIcon /></button>
+    </span>;
 }
 
-const ObjectivePopup = forwardRef((props, ref)=> {
-    const allObjectives = ObjectiveList(props.filter);
-    return <Flex direction="column" justify="start" width="100%">
-        {
-            allObjectives.map((item, idx) => {
-                return <button ref={idx==0?ref:null} onClick={()=>props.onSelectObjective(item.name)} className="objective_selector_item" key={idx}>{item.name}</button>
-            })
-        }
-    </Flex>;
-});
-
-function SearchBox(props)
-{
-    return  <>
-        <TextField.Root color="tomato" className="objective_search">
-        <TextField.Slot>
-          <MagnifyingGlassIcon height="16" width="16" />
-        </TextField.Slot>
-        <TextField.Input placeholder="Search by name..."  autoComplete="true" onChange={props.onType} onKeyDown={props.onKeyDown}/>
-      </TextField.Root>
-      </>;
+function ObjectiveRow({ item, children, extra }) {
+    const { dispatch } = useTracker();
+    return <div className={"objective_single_root" + (item.done ? " completed" : "")}>
+        <label className="objective_text">
+            <Switch color="green" checked={item.done} onCheckedChange={() => dispatch({ type: 'toggleObjective', slotKey: item.slotKey })} />
+            <span className="objective_name">{children}</span>
+        </label>
+        {item.time != null && <span className="timestamp">{formatTime(item.time)}</span>}
+        {extra}
+    </div>;
 }
 
-function SingleObjective() {
-    const [filterText, setFilterText] = useState("");
-    const [objectiveName, setObjectiveName] = useState("Objective")
-    const [popupOpen, setPopupOpen] = useState(false);
-
-    const popupContent = useRef(null);
-    const onTyped = (event)=>
-    {
-        setFilterText(event.currentTarget.value);
-    }
-
-    const onKeyWentDown = (event)=>
-    {
-        console.log(event);
-        if ( event.key == "Enter")
-        {
-            const bestObjectives = ObjectiveList(filterText);
-            if (bestObjectives.length > 0)
-            {
-                setObjectiveName(bestObjectives[0].name);
-                setPopupOpen(false);
-            }
-        }
-        else if (event.key=="ArrowDown")
-        {
-            console.log("Current popup is "+popupContent.current);
-            popupContent.current.focus();
-        }
-    }
-
-    const onSelectObjective = (objectiveName)=>
-    {
-        setObjectiveName(objectiveName);
-        setPopupOpen(false);
-    }
-
-    return <div className="objective_single_root" >            
-            <label className="objective_text">
-                <Switch color="green" ></Switch>
-                {objectiveName}
-            </label>
-        <Popover.Root open={popupOpen} onOpenChange={setPopupOpen}>
-            <Popover.Trigger asChild>
-                <button className="IconButton" aria-label="OpenObjectives" onClick={()=>{setPopupOpen(true); setFilterText("")}}>
-                    <MixerHorizontalIcon />
-                </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-                <Popover.Content className="PopoverContent" sideOffset={5} side="right">
-                    <SearchBox onType={onTyped} onKeyDown={onKeyWentDown}/>
-                    <div className="objective_popup">
-                        <ObjectivePopup ref={popupContent} filter={filterText} onSelectObjective={onSelectObjective}></ObjectivePopup>
-                        <Popover.Arrow className="PopoverArrow" />
-                    </div> 
-                </Popover.Content>
-            </Popover.Portal>
-        </Popover.Root>
-    </div>
+// Rows that complete themselves (collect objectives, other-group requirements).
+function AutoRow({ item, children, extra }) {
+    return <div className={"objective_single_root" + (item.done ? " completed" : "")}>
+        <span className="objective_text auto">
+            <Switch color="green" checked={item.done} disabled />
+            <span className="objective_name">{children}</span>
+        </span>
+        {extra}
+    </div>;
 }
+
+function CollectRow({ item }) {
+    const { state, dispatch } = useTracker();
+    const manual = MANUAL_COUNTERS[item.counter];
+    const progress = <span className="collect_progress">{item.value}/{item.target}{manual?.unit ? ` ${manual.unit}` : ''}</span>;
+    const counter = manual && <Counter value={state.objectives.counters[item.counter]} step={manual.step} label={item.counter}
+        onChange={(value) => dispatch({ type: 'setCounter', counter: item.counter, value })} />;
+    return <AutoRow item={item} extra={<>{progress}{counter}</>}>{objectiveItemName(item)}</AutoRow>;
+}
+
+function ObjectivePicker({ categories, onPick }) {
+    const allowed = RANDOM_CATEGORIES.filter(({ category }) => categories[category]);
+    const [category, setCategory] = useState(allowed[0]?.category ?? ObjectiveCategory.QUEST);
+    const [filter, setFilter] = useState('');
+
+    const matches = useMemo(() => {
+        const words = filter.toLowerCase().split(' ').filter((w) => w !== '');
+        return OBJECTIVES
+            .filter((o) => o.category === category)
+            .filter((o) => words.every((w) => o.name.toLowerCase().includes(w)))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [category, filter]);
+
+    const onKeyDown = (event) => {
+        if (event.key === 'Enter' && matches.length > 0) onPick(matches[0].id);
+    };
+
+    return <div className="objective_picker">
+        <Tabs.Root value={category} onValueChange={setCategory}>
+            <Tabs.List size="1">
+                {RANDOM_CATEGORIES.map(({ category: c, label }) => {
+                    const disabled = !categories[c];
+                    return <Tabs.Trigger key={c} value={c} disabled={disabled} className={disabled ? "category_disabled" : ""}>{label}</Tabs.Trigger>;
+                })}
+            </Tabs.List>
+        </Tabs.Root>
+        <TextField.Root className="objective_search" placeholder="Search by name..." autoFocus value={filter}
+            onChange={(event) => setFilter(event.target.value)} onKeyDown={onKeyDown}>
+            <TextField.Slot><MagnifyingGlassIcon height="16" width="16" /></TextField.Slot>
+        </TextField.Root>
+        <div className="objective_popup">
+            {matches.map((o) => <button key={o.id} className="objective_selector_item" onClick={() => onPick(o.id)}>{o.name}</button>)}
+        </div>
+    </div>;
+}
+
+function RandomObjectiveRow({ group, item }) {
+    const { dispatch } = useTracker();
+    const [open, setOpen] = useState(false);
+
+    const pick = (objectiveId) => {
+        dispatch({ type: 'setRandomObjective', group: group.id, slot: item.slot, slotKey: item.slotKey, objectiveId });
+        setOpen(false);
+    };
+
+    const picker = <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Trigger>
+            <button className="IconButton" aria-label="Choose objective" title="Choose objective"><MixerHorizontalIcon /></button>
+        </Popover.Trigger>
+        <Popover.Content side="right" sideOffset={5} maxWidth="min(420px, 90vw)">
+            <ObjectivePicker categories={group.categories} onPick={pick} />
+        </Popover.Content>
+    </Popover.Root>;
+
+    return <ObjectiveRow item={item} extra={picker}>
+        {item.id === null ? <span className="unset">[Set Random Objective {item.slot + 1}]</span> : OBJECTIVES[item.id].name}
+    </ObjectiveRow>;
+}
+
+function GroupItem({ group, item }) {
+    switch (item.kind) {
+        case 'random': return <RandomObjectiveRow group={group} item={item} />;
+        case ObjectiveItemKind.COLLECT: return <CollectRow item={item} />;
+        case ObjectiveItemKind.GROUP: return <AutoRow item={item}>{objectiveItemName(item)}</AutoRow>;
+        default: return <ObjectiveRow item={item}>{OBJECTIVES[item.id].name}</ObjectiveRow>;
+    }
+}
+
+function Rewards({ rewards }) {
+    return <span className="rewards">
+        {rewards.map(({ at, reward, earned }, index) =>
+            <span key={index} className={"reward_chip" + (earned ? " earned" : "")}>{at === 'all' ? 'All' : at} → {rewardName(reward)}</span>)}
+    </span>;
+}
+
+function ObjectiveGroup({ group, showTitle }) {
+    return <div className="objective_group">
+        <div className="objective_group_header">
+            {showTitle && <span className="objective_group_title">Group {group.id}</span>}
+            <span className="objective_group_count">{group.completed}/{group.total}</span>
+            <Rewards rewards={group.rewards} />
+        </div>
+        {group.items.map((item) => <GroupItem key={item.slotKey} group={group} item={item} />)}
+    </div>;
+}
+
+function DarkMatterCounter({ target }) {
+    const { state, dispatch } = useTracker();
+    return <div className="dark_matter">
+        <span>DkMatter turned in</span>
+        <Counter value={state.objectives.darkMatter} label="DkMatter" onChange={(value) => dispatch({ type: 'setDarkMatter', value })} />
+        {target && <span className="collect_progress">/{target}</span>}
+    </div>;
+}
+
+function DarkMatterQuests({ progress }) {
+    return <div className="objective_group">
+        <div className="objective_group_header">
+            <span className="objective_group_title">DkMatter Quests</span>
+            <Rewards rewards={progress.rewards} />
+        </div>
+        {progress.items.map((item) => <ObjectiveRow key={item.slotKey} item={item}
+            extra={<span className="collect_progress">+{item.darkMatter}</span>}>{OBJECTIVES[item.id].name}</ObjectiveRow>)}
+    </div>;
+}
+
 export function ObjectivePanel() {
+    const { state, flags } = useTracker();
+    const groups = objectiveGroupProgress(state, flags);
+    const darkMatterQuests = darkMatterQuestProgress(state, flags);
+    const showGroupTitles = flags.version50 || groups.length > 1;
+
     return <div className="objective_root">
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-        <SingleObjective />
-
-        
-    </div>
-
+        <header className="section_header">Objectives</header>
+        {flags.objectives.darkMatterCounter && <DarkMatterCounter target={darkMatterQuests?.target} />}
+        {darkMatterQuests && <DarkMatterQuests progress={darkMatterQuests} />}
+        {groups.map((group) => <ObjectiveGroup key={group.id} group={group} showTitle={showGroupTitles} />)}
+        {groups.length === 0 && !darkMatterQuests && <div className="empty_note">No objectives in these flags</div>}
+    </div>;
 }
