@@ -1,5 +1,6 @@
 import { KEY_ITEMS, KeyItemState } from './data/keyItems';
 import { goModeStatus, hasKeyItemBonus, KeyItemGoStatus, keyItemCount, maxKeyItems } from './logic/goMode';
+import { NoFreeKeyItem } from './logic/flags';
 import { useTracker } from './state/TrackerContext';
 import { asset } from './asset';
 
@@ -33,7 +34,7 @@ export function KIPanel() {
                 {value === KeyItemState.USED && <img className="ki_done" src={asset("images/done.png")} alt="" />}
             </button>;
         })}
-        {flags.keyItems.noFree && <MistToggle />}
+        {flags.keyItems.noFree === NoFreeKeyItem.MIST && <MistToggle />}
         <div className={"ki_count" + (hasKeyItemBonus(state, flags) ? " ki_bonus" : "")}>
             {keyItemCount(state, flags)}/{maxKeyItems(flags)}
         </div>

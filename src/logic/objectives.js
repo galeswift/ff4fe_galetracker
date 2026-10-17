@@ -38,18 +38,23 @@ export function objectiveGroupProgress(state, flags) {
             return { ...item, slotKey, done: Boolean(completed[slotKey]), time: completed[slotKey]?.time ?? null };
         });
 
+        // Random slots, numbered across the group's buckets (the fork has up to three per group).
         const random = state.objectives.random[group.id] ?? [];
-        for (let slot = 0; slot < group.randomCount; slot++) {
-            const slotKey = randomSlotKey(group.id, slot);
-            items.push({
-                kind: 'random', slot, slotKey, id: random[slot] ?? null,
-                done: Boolean(completed[slotKey]), time: completed[slotKey]?.time ?? null,
-            });
+        let slot = 0;
+        for (const bucket of group.random) {
+            for (let i = 0; i < bucket.count; i++, slot++) {
+                const slotKey = randomSlotKey(group.id, slot);
+                items.push({
+                    kind: 'random', slot, slotKey, id: random[slot] ?? null,
+                    categories: bucket.categories, onlyCharacters: bucket.onlyCharacters,
+                    done: Boolean(completed[slotKey]), time: completed[slotKey]?.time ?? null,
+                });
+            }
         }
 
         const done = items.filter((i) => i.done).length;
         const rewards = group.rewards.map((r) => ({ ...r, earned: done >= (r.at === 'all' ? items.length : r.at) }));
-        results[group.id] = { id: group.id, categories: group.categories, items, completed: done, total: items.length, rewards };
+        results[group.id] = { id: group.id, items, completed: done, total: items.length, rewards };
     }
 
     return flags.objectives.groups.map((g) => results[g.id]);

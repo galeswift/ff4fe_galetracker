@@ -6,8 +6,8 @@ import { useTracker } from './state/TrackerContext';
 import { asset } from './asset';
 
 function usePortrait() {
-    const { state } = useTracker();
-    const paladin = isCecilPaladin(state);
+    const { state, flags } = useTracker();
+    const paladin = isCecilPaladin(state, flags);
     const adult = isRydiaAdult(state);
     return (character) => {
         const useAlt = (character.id === CECIL && paladin) || (character.id === RYDIA && adult);

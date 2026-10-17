@@ -30,9 +30,9 @@ describe('parseFlags', () => {
         expect(flags.version50).toBe(false);
         const [group] = flags.objectives.groups;
         expect(group.items).toEqual([{ kind: 'objective', id: idOf('quest_forge') }]);
-        expect(group.randomCount).toBe(7);
+        expect(group.random.map((b) => b.count)).toEqual([7]);
         expect(group.rewards).toEqual([{ at: 6, reward: 'crystal' }]);
-        expect(flags.keyItems).toMatchObject({ summon: true, moon: true, miab: null, noFree: true });
+        expect(flags.keyItems).toMatchObject({ summon: true, moon: true, miab: null, noFree: 'mist' });
         expect(flags.characters.hero).toBe(true);
         expect(flags.characters.noFree).toBe(true);
         expect(flags.characters.allowed[3]).toBe(false); // Tellah
@@ -42,12 +42,13 @@ describe('parseFlags', () => {
 
     it('reads fixed objectives numbered 10 and up', () => {
         const flags = parseFlags('O1:quest_magnes/10:quest_zot/11:boss_milon');
-        expect(flags.objectives.groups[0].items.map((i) => i.id)).toEqual([idOf('boss_milon'), idOf('quest_magnes'), idOf('quest_zot')]);
+        // Kept in flag order, which is how the fork numbers them for Ohardreq / Ogated.
+        expect(flags.objectives.groups[0].items.map((i) => i.id)).toEqual([idOf('quest_magnes'), idOf('quest_zot'), idOf('boss_milon')]);
     });
 
     it('allows every random category unless some are listed', () => {
-        expect(Object.values(parseFlags('Orandom:3').objectives.groups[0].categories)).toEqual([true, true, true]);
-        expect(parseFlags('Orandom:3,boss').objectives.groups[0].categories).toEqual({
+        expect(Object.values(parseFlags('Orandom:3').objectives.groups[0].random[0].categories)).toEqual([true, true, true]);
+        expect(parseFlags('Orandom:3,boss').objectives.groups[0].random[0].categories).toEqual({
             [ObjectiveCategory.QUEST]: false, [ObjectiveCategory.BOSS]: true, [ObjectiveCategory.CHARACTER]: false,
         });
     });
@@ -154,8 +155,9 @@ describe('location availability', () => {
     });
 
     it('changes Cecil and Rydia portraits from location checks', () => {
-        const { state } = setup('Kmain');
-        expect(isCecilPaladin(apply(state, { type: 'toggleKeyItemCheck', id: KeyItemCheck.MT_ORDEALS }))).toBe(true);
+        const { flags, state } = setup('Kmain');
+        expect(isCecilPaladin(state, flags)).toBe(false);
+        expect(isCecilPaladin(apply(state, { type: 'toggleKeyItemCheck', id: KeyItemCheck.MT_ORDEALS }), flags)).toBe(true);
         expect(isRydiaAdult(apply(state, { type: 'toggleCharacterCheck', id: CharacterCheck.DWARF }))).toBe(true);
         expect(isRydiaAdult(apply(state, { type: 'toggleKeyItemCheck', id: KeyItemCheck.DWARF }))).toBe(true);
     });
@@ -216,8 +218,10 @@ describe('5.0 flags', () => {
 
     it('reads random-only groups', () => {
         const [group] = parseFlags(LADDER).objectives.groups;
-        expect(group).toMatchObject({ id: 'A', randomCount: 7, rewards: [{ at: 6, reward: 'crystal' }] });
-        expect(group.categories).toEqual({ [ObjectiveCategory.QUEST]: true, [ObjectiveCategory.BOSS]: false, [ObjectiveCategory.CHARACTER]: false });
+        expect(group).toMatchObject({ id: 'A', rewards: [{ at: 6, reward: 'crystal' }] });
+        expect(group.random).toHaveLength(1);
+        expect(group.random[0].count).toBe(7);
+        expect(group.random[0].categories).toEqual({ [ObjectiveCategory.QUEST]: true, [ObjectiveCategory.BOSS]: false, [ObjectiveCategory.CHARACTER]: false });
     });
 
     it('parses the new key item, character, boss and experience flags', () => {
@@ -302,5 +306,106 @@ describe('5.0 flags', () => {
     it('needs the Package for the Kaipo inn quest', () => {
         const { flags, state } = setup('OA1:quest_kaipoinn/do_all:crystal');
         expect(goModeStatus(state, flags).itemStatus[KeyItem.PACKAGE]).toBe(KeyItemGoStatus.MISSING);
+    });
+});
+
+describe('4.7 Gale fork flags', () => {
+    // Flag strings as written by the fork's own flag library (ff4fe.galeswift.com).
+    const FORK = "Omode:classicforge,dkmatter15,ki10,bosscollector20,goldhunter250,external/2:boss_milon/random:3,quest,char,onlycecil,onlykain/random2:2,boss/random3:1,tough_quest/req:8/hardreq:1,3/gated:2/win:crystal Kmain/miab:standard/pink/nofree:package/start:baron Pkey Cstandard/nofree/no:tellah/paladin/superhero/treasure:free Tstandard Svanilla Bstandard Etoggle Xnokeybonus -doorsrando:all";
+    const FORK2 = "O1:quest_forge/random:2/req:all/win:game Kmain/miab:above,lst/nofree:dwarf/start:pink Pnone Cstandard/nofree/noearned/treasure:free,earned,relaxed Tpro -starting:underground";
+
+    it('stays a 4.x flagset (Pass not counted) despite sharing flags with 5.0', () => {
+        expect(parseFlags(FORK).version50).toBe(false);
+        expect(parseFlags('Kmain/forge/miab:above/start:hook/latedark Xnokeybonus').version50).toBe(false);
+    });
+
+    it("builds objectives in the fork's order, with counted modes and the EagleEye objective", () => {
+        const [group] = parseFlags(FORK).objectives.groups;
+        expect(group.items).toEqual([
+            { kind: 'objective', id: 0, hardRequired: true },
+            { kind: 'objective', id: 91, gated: true },
+            { kind: 'collect', counter: 'dkmatter', target: 15, hardRequired: true },
+            { kind: 'collect', counter: 'ki', target: 10 },
+            { kind: 'collect', counter: 'boss', target: 20 },
+            { kind: 'collect', counter: 'gp', target: 250 },
+            { kind: 'objective', id: idOf('boss_milon') },
+        ]);
+        expect(group.rewards).toEqual([{ at: 8, reward: 'crystal' }]);
+        expect(parseFlags(FORK).objectives.darkMatterCounter).toBe(true);
+    });
+
+    it('reads the three random buckets and only-character limits', () => {
+        const { random } = parseFlags(FORK).objectives.groups[0];
+        expect(random.map((b) => b.count)).toEqual([3, 2, 1]);
+        expect(random[0].onlyCharacters).toEqual([0, 1]);
+        expect(random[1].categories).toEqual({ [ObjectiveCategory.QUEST]: false, [ObjectiveCategory.BOSS]: true, [ObjectiveCategory.CHARACTER]: false });
+        const { flags, state } = setup(FORK);
+        const progress = objectiveGroupProgress(state, flags)[0];
+        const randomItems = progress.items.filter((i) => i.kind === 'random');
+        expect(randomItems.map((i) => i.slotKey)).toEqual(['A:r0', 'A:r1', 'A:r2', 'A:r3', 'A:r4', 'A:r5']);
+        expect(randomItems[3].categories[ObjectiveCategory.BOSS]).toBe(true);
+    });
+
+    it('parses the fork key item and character flags', () => {
+        const flags = parseFlags(FORK);
+        expect(flags.keyItems).toMatchObject({ miab: 'standard', pink: true, noFree: 'package', start: [KeyItem.BARON_KEY] });
+        expect(flags.characters).toMatchObject({ paladin: true, hero: true, noFree: true });
+        expect(flags.mapShuffled).toBe(true);
+        const two = parseFlags(FORK2);
+        expect([...two.keyItems.miab]).toEqual(['above', 'lst']);
+        expect(two.keyItems).toMatchObject({ noFree: 'dwarf', start: [KeyItem.PINK_TAIL] });
+        expect(two.characters).toMatchObject({ noFree: true, noEarned: true });
+        expect(two.startUnderground).toBe(true);
+    });
+
+    it('turns doors/entrances rando into a checklist', () => {
+        const { flags, settings, state } = setup(FORK);
+        const list = keyItemLocationList(state, flags, settings);
+        expect(list.every((l) => l.available)).toBe(true);
+        expect(list.map((l) => l.id)).not.toContain(KeyItemCheck.HOOK_ROUTE);
+    });
+
+    it('adds the Pink Tail trade check and moves the free key item', () => {
+        const flags = parseFlags('Kmain/pink/nofree:dwarf');
+        const { state } = setup('Kmain/pink/nofree:dwarf');
+        const ids = keyItemLocationList(state, flags, DEFAULT_SETTINGS).map((l) => l.id);
+        expect(ids).toEqual(expect.arrayContaining([KeyItemCheck.PINK_TRADE, KeyItemCheck.DWARF_CID]));
+        expect(ids).not.toContain(KeyItemCheck.TOROIA);
+        expect(ids).not.toContain(KeyItemCheck.MIST);
+        const ready = withKeyItems(state, KeyItem.PINK_TAIL, KeyItem.HOOK, KeyItem.MAGMA_KEY);
+        expect(visible(keyItemLocationList(ready, flags, DEFAULT_SETTINGS))).toEqual(expect.arrayContaining([KeyItemCheck.PINK_TRADE, KeyItemCheck.DWARF_CID]));
+    });
+
+    it('opens Mist Village with the Package under Knofree:package', () => {
+        const { flags, state } = setup('Kmain/nofree:package');
+        expect(visible(keyItemLocationList(state, flags, DEFAULT_SETTINGS))).not.toContain(KeyItemCheck.MIST);
+        expect(visible(keyItemLocationList(withKeyItems(state, KeyItem.PACKAGE), flags, DEFAULT_SETTINGS))).toContain(KeyItemCheck.MIST);
+    });
+
+    it('includes Lunar Sub. trapped chests on Kmiab:standard only with Kmoon or Kunsafe', () => {
+        const ids = (flagset) => trapLocationList(setup(flagset).state, parseFlags(flagset), DEFAULT_SETTINGS).map((l) => l.id);
+        expect(ids('Kmain/miab:standard')).not.toContain(Trap.MOON_SUB);
+        expect(ids('Kmain/miab:standard/unsafe')).toContain(Trap.MOON_SUB);
+        expect(ids('Kmain/miab:standard/moon')).toContain(Trap.MOON_SUB);
+    });
+
+    it('opens the underworld from the start with -starting:underground', () => {
+        const { flags, state } = setup('Kmain -starting:underground');
+        expect(visible(keyItemLocationList(state, flags, DEFAULT_SETTINGS))).toContain(KeyItemCheck.DWARF);
+        const forge = setup('O1:quest_forge Kmain -starting:underground');
+        const status = goModeStatus(forge.state, forge.flags).itemStatus;
+        expect(status[KeyItem.HOOK]).toBe(KeyItemGoStatus.NONE);
+        expect(status[KeyItem.MAGMA_KEY]).toBe(KeyItemGoStatus.NONE);
+    });
+
+    it('starts Cecil as a paladin with Cpaladin', () => {
+        const { flags, state } = setup('Cstandard/paladin');
+        expect(isCecilPaladin(state, flags)).toBe(true);
+    });
+
+    it("names fork flags from the fork's spec", () => {
+        const sections = readableSections('Kmain/pink/nofree:dwarf Cstandard/paladin -doorsrando:all');
+        expect(sections.find((s) => s.title === 'Key Items').entries).toEqual(['Randomize key items', 'Pink Tail trades for a key item', 'Move key item from Toroia to Dwarf Castle']);
+        expect(sections.find((s) => s.title === 'Other').entries).toEqual(['All Doors shuffled']);
     });
 });

@@ -122,12 +122,15 @@ export const OBJECTIVES = [
     ...CHARACTERS.map(([key, name]) => ({ key, name, category: ObjectiveCategory.CHARACTER })),
     ...BOSSES.map(([key, name]) => ({ key, name, category: ObjectiveCategory.BOSS })),
     ...QUESTS.map(([key, name, requires]) => ({ key, name, category: ObjectiveCategory.QUEST, requires })),
+    // 4.7 Gale fork's Omode:external
+    ...[["internal_external", "Complete external goal and use EagleEye"]].map(([key, name]) => ({ key, name, category: ObjectiveCategory.MODE })),
 ].map((objective, id) => ({ id, requires: [], ...objective }));
 
 export const ObjectiveId = Object.freeze({
     CLASSIC_FORGE: 0,
     CLASSIC_GIANT: 1,
     DARK_MATTER: 3,
+    EXTERNAL: 91,
 });
 
 // The Fiends mode enables these six boss objectives.

@@ -1,4 +1,4 @@
-import { Separator } from '@radix-ui/themes';
+import { Callout, Separator } from '@radix-ui/themes';
 import {
     characterLocationList, keyItemLocationList, showCharacterLocations, showTrapChests, showWarpGlitchPrompt, trapLocationList,
 } from './logic/availability';
@@ -50,7 +50,11 @@ export function LocationPanel() {
     const { state, flags, settings, dispatch } = useTracker();
     const warpPrompt = showWarpGlitchPrompt(state, flags, settings);
 
-    return <div className="location_root">
+    return <>
+    {flags.mapShuffled && <Callout.Root size="1" color="amber" className="map_shuffled_note">
+        <Callout.Text>Doors or entrances are shuffled, so every location is listed without key item logic.</Callout.Text>
+    </Callout.Root>}
+    <div className="location_root">
         <LocationColumn title="Key Items" image="images/img_objective.png" column="keyItems"
             locations={keyItemLocationList(state, flags, settings)}
             onClickLocation={(l) => dispatch({ type: 'toggleKeyItemCheck', id: l.id })}
@@ -68,5 +72,6 @@ export function LocationPanel() {
                 onClickLocation={(l) => dispatch({ type: 'clickTrapChest', id: l.id })}
                 label={(l, showingChecked) => (showingChecked ? l.name : `${l.name} [${l.remaining}]`)} />
         </>}
-    </div>;
+    </div>
+    </>;
 }

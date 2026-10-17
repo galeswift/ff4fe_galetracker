@@ -30,7 +30,8 @@ export function requiredKeyItems(objectiveIds) {
 
 export function goModeStatus(state, flags) {
     const required = requiredKeyItems(activeObjectiveIds(state, flags));
-    const hasUnderworldItem = hasKeyItem(state, KeyItem.HOOK) || hasKeyItem(state, KeyItem.MAGMA_KEY);
+    // Hook or Magma Key is only needed to reach the underworld; -starting:underground already has it.
+    const hasUnderworldItem = flags.startUnderground || hasKeyItem(state, KeyItem.HOOK) || hasKeyItem(state, KeyItem.MAGMA_KEY);
 
     const itemStatus = state.keyItems.map((_, keyItem) => {
         if (!required[keyItem]) return KeyItemGoStatus.NONE;

@@ -551,6 +551,22 @@ button {
   transform: translateY(0);
 }
 
+.objective_tag
+{
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 4px;
+  color: var(--amber-11);
+  border: 1px solid var(--amber-7);
+  white-space: nowrap;
+}
+
+.map_shuffled_note
+{
+  width: 100%;
+  text-transform: none;
+}
+
 /* Objective groups (5.0 has up to five, each with its own rewards). */
 .objective_group
 {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Popover, Switch, Tabs, TextField } from '@radix-ui/themes';
 import { MagnifyingGlassIcon, MinusIcon, MixerHorizontalIcon, PlusIcon } from '@radix-ui/react-icons';
+import { CHARACTERS } from './data/characters';
 import { CollectKind, OBJECTIVES, ObjectiveCategory } from './data/objectives';
 import { ObjectiveItemKind, objectiveItemName, rewardName } from './logic/flags';
 import { darkMatterQuestProgress, objectiveGroupProgress } from './logic/objectives';
@@ -29,12 +30,21 @@ function Counter({ value, onChange, step = 1, label }) {
     </span>;
 }
 
+// The fork's Ohardreq / Ogated marks.
+function ObjectiveTags({ item }) {
+    return <>
+        {item.hardRequired && <span className="objective_tag" title="Must be one of the completed objectives">Hard required</span>}
+        {item.gated && <span className="objective_tag" title="Its reward is granted once the other objectives are done">Gated</span>}
+    </>;
+}
+
 function ObjectiveRow({ item, children, extra }) {
     const { dispatch } = useTracker();
     return <div className={"objective_single_root" + (item.done ? " completed" : "")}>
         <label className="objective_text">
             <Switch color="green" checked={item.done} onCheckedChange={() => dispatch({ type: 'toggleObjective', slotKey: item.slotKey })} />
             <span className="objective_name">{children}</span>
+            <ObjectiveTags item={item} />
         </label>
         {item.time != null && <span className="timestamp">{formatTime(item.time)}</span>}
         {extra}
@@ -61,18 +71,23 @@ function CollectRow({ item }) {
     return <AutoRow item={item} extra={<>{progress}{counter}</>}>{objectiveItemName(item)}</AutoRow>;
 }
 
-function ObjectivePicker({ categories, onPick }) {
+// Character keys a random slot may pick when the fork's Orandom:only<char> limits it.
+const onlyCharacterKeys = (onlyCharacters) => onlyCharacters && new Set(onlyCharacters.map((id) => `char_${CHARACTERS[id].flag.toLowerCase()}`));
+
+function ObjectivePicker({ categories, onlyCharacters, onPick }) {
     const allowed = RANDOM_CATEGORIES.filter(({ category }) => categories[category]);
     const [category, setCategory] = useState(allowed[0]?.category ?? ObjectiveCategory.QUEST);
     const [filter, setFilter] = useState('');
 
     const matches = useMemo(() => {
         const words = filter.toLowerCase().split(' ').filter((w) => w !== '');
+        const onlyKeys = onlyCharacterKeys(onlyCharacters);
         return OBJECTIVES
             .filter((o) => o.category === category)
+            .filter((o) => o.category !== ObjectiveCategory.CHARACTER || !onlyKeys || onlyKeys.has(o.key))
             .filter((o) => words.every((w) => o.name.toLowerCase().includes(w)))
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [category, filter]);
+    }, [category, filter, onlyCharacters]);
 
     const onKeyDown = (event) => {
         if (event.key === 'Enter' && matches.length > 0) onPick(matches[0].id);
@@ -111,7 +126,7 @@ function RandomObjectiveRow({ group, item }) {
             <button className="IconButton" aria-label="Choose objective" title="Choose objective"><MixerHorizontalIcon /></button>
         </Popover.Trigger>
         <Popover.Content side="right" sideOffset={5} maxWidth="min(420px, 90vw)">
-            <ObjectivePicker categories={group.categories} onPick={pick} />
+            <ObjectivePicker categories={item.categories} onlyCharacters={item.onlyCharacters} onPick={pick} />
         </Popover.Content>
     </Popover.Root>;
 

@@ -68,4 +68,11 @@ export const KEY_ITEM_START_NAMES = {
     PINKTAIL: KeyItem.PINK_TAIL,
     CRYSTAL: KeyItem.CRYSTAL,
     PASS: KeyItem.PASS,
+    // 4.7 Gale fork spellings
+    BARON: KeyItem.BARON_KEY,
+    LUCA: KeyItem.LUCA_KEY,
+    MAGMA: KeyItem.MAGMA_KEY,
+    TOWER: KeyItem.TOWER_KEY,
+    RAT: KeyItem.RAT_TAIL,
+    PINK: KeyItem.PINK_TAIL,
 };

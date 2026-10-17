@@ -1,6 +1,7 @@
 import { KEY_ITEMS, KeyItemState } from '../data/keyItems';
 import { KeyItemCheck, TRAPPED_CHEST_LOCATIONS } from '../data/locations';
 import { MAX_DARK_MATTER } from '../data/objectives';
+import { randomSlotCount } from '../logic/flags';
 import { elapsedMs, initialTimer, pauseTimer, startTimer } from '../logic/timer';
 
 export const LocationView = Object.freeze({ UNCHECKED: 'unchecked', CHECKED: 'checked' });
@@ -21,7 +22,7 @@ export function initialTrackerState(flagset, flags) {
             // { [slotKey]: { time } } for objectives checked off by hand; see logic/objectives.js for slot keys.
             completed: {},
             // { [groupId]: [objectiveId | null, ...] } — what each random slot turned out to be.
-            random: Object.fromEntries(flags.objectives.groups.map((g) => [g.id, Array(g.randomCount).fill(null)])),
+            random: Object.fromEntries(flags.objectives.groups.map((g) => [g.id, Array(randomSlotCount(g)).fill(null)])),
             darkMatter: 0,
             // Shared counts for collect_boss / collect_chest / collect_gp (GP in thousands).
             counters: { boss: 0, chest: 0, gp: 0 },

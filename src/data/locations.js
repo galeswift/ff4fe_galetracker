@@ -30,8 +30,12 @@ export const KeyItemCheck = Object.freeze({
     MOON_RIBBON: 25,
     MOON_WHITE: 26,
     HOOK_ROUTE: 27,
-    // 5.0 Kforge
+    // 5.0 / 4.7 fork Kforge
     FORGE: 28,
+    // 4.7 fork Kpink
+    PINK_TRADE: 29,
+    // 4.7 fork Knofree:dwarf (Cid in the Dwarf Castle hospital)
+    DWARF_CID: 30,
 });
 
 export const CharacterCheck = Object.freeze({
@@ -92,9 +96,11 @@ export const KEY_ITEM_LOCATIONS = [
     { id: KeyItemCheck.MIST, name: "Mist Village", region: Region.OVERWORLD, requires: (ctx) => ctx.mist },
     { id: KeyItemCheck.MT_ORDEALS, name: "Mt Ordeals", region: Region.OVERWORLD, requires: always },
     { id: KeyItemCheck.TOROIA, name: "Toroia Castle", region: Region.OVERWORLD, requires: always },
+    { id: KeyItemCheck.PINK_TRADE, name: "Pink Tail Trade", region: Region.OVERWORLD, requires: (ctx) => ctx.has(KeyItem.PINK_TAIL) && ctx.has(KeyItem.HOOK) },
     { id: KeyItemCheck.TOWER_ZOT, name: "Tower of Zot", region: Region.OVERWORLD, requires: earthCrystal },
     { id: KeyItemCheck.HOOK_ROUTE, name: "Clear Hook Route", region: Region.OVER_UNDER, requires: (ctx) => hook(ctx) && !ctx.has(KeyItem.MAGMA_KEY) && !ctx.hookClear },
     { id: KeyItemCheck.DWARF, name: "Dwarf Castle", region: Region.UNDERWORLD, requires: underworld },
+    { id: KeyItemCheck.DWARF_CID, name: "Dwarf Castle [Cid]", region: Region.UNDERWORLD, requires: underworld },
     { id: KeyItemCheck.FORGE, name: "Kokkol's Forge", region: Region.UNDERWORLD, requires: (ctx) => ctx.has(KeyItem.LEGEND) && ctx.has(KeyItem.ADAMANT) && ctx.underworld },
     { id: KeyItemCheck.FABUL_SYLPH, name: "Fabul [Sheila/Sylph]", region: Region.UNDERWORLD, requires: underworld },
     { id: KeyItemCheck.FABUL_PAN, name: "Fabul [Sheila/Pan]", region: Region.UNDERWORLD, requires: (ctx) => ctx.has(KeyItem.PAN) && ctx.underworld },
