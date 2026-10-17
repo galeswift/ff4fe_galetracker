@@ -2,7 +2,11 @@
 // `flag` is the name used by 5.0's Bno: flag to exclude that boss.
 const boss = (id, name, file, flag = null) => ({ id, name, flag, image: `images/bosses/FFIVFE-Bosses-${file}-Color.png` });
 
-export const BOSSES = [
+// The Lunar Subterrane bosses, which Free Enterprise shows as a sparkle on the map
+// (boss_rando.py gives these slots the Sparkle sprite).
+const SPARKLE_BOSSES = ['paledim', 'wyvern', 'plague', 'dlunar', 'ogopogo'];
+
+const BOSS_LIST = [
     boss(0, "Mist Dragon", "01MistD", "dmist"),
     boss(1, "Baron Soldiers", "02Soldier", "officer"),
     boss(2, "Octomamm", "03Octo", "octomamm"),
@@ -40,3 +44,5 @@ export const BOSSES = [
     boss(34, "Dark Imps", "35DarkImps", "darkimp"),
     boss(35, "Zeromus", "36Zeromus"),
 ];
+
+export const BOSSES = BOSS_LIST.map((b) => ({ ...b, sparkle: SPARKLE_BOSSES.includes(b.flag) }));

@@ -18,7 +18,7 @@ export function BossPanel() {
                 // 5.0 Bno: bosses won't appear, but stay clickable in case of a mistake.
                 const excluded = flags.excludedBosses.includes(boss.flag);
                 return <button key={boss.id} title={excluded ? `${boss.name} (excluded)` : boss.name} aria-pressed={seen}
-                    className={"boss_item" + (seen ? " seen" : "") + (excluded ? " excluded" : "")}
+                    className={"boss_item" + (seen ? " seen" : "") + (excluded ? " excluded" : "") + (boss.sparkle ? " sparkle" : "")}
                     onClick={() => dispatch({ type: 'toggleBoss', id: boss.id })}>
                     <img src={asset(boss.image)} alt={boss.name} />
                 </button>;

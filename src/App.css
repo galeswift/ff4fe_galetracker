@@ -1059,11 +1059,51 @@ button {
 
 .boss_item
 {
+  --boss-bg: var(--gray-a3);
   padding: 2px;
   border: none;
   border-radius: 4px;
-  background-color: var(--gray-a3);
+  background-color: var(--boss-bg);
   line-height: 0;
+}
+
+/* Moon bosses (map sparkles): a 1px ring in the sparkle sprite's own colours (white, yellow and
+   orange, from NPC palette 0), with a soft glint drifting around it. It's drawn over the tile's
+   edge, so the tile itself is unchanged. */
+.boss_item.sparkle
+{
+  position: relative;
+}
+
+.boss_item.sparkle::before
+{
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(120deg, #de7b10, #ffff31, #ffffff, #ff9c63, #de7b10, #ffff31, #ffffff);
+  background-size: 300% 300%;
+  /* keep only the 1px padding ring */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: moon_sparkle 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes moon_sparkle
+{
+  from { background-position: 0% 50%; }
+  to { background-position: 150% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce)
+{
+  .boss_item.sparkle::before
+  {
+    animation: none;
+  }
 }
 
 .boss_item img
@@ -1082,7 +1122,7 @@ button {
 
 .boss_item.seen
 {
-  background-color: var(--green-7);
+  --boss-bg: var(--green-7);
 }
 
 .boss_item.excluded
