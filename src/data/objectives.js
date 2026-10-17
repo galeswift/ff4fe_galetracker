@@ -124,7 +124,7 @@ export const OBJECTIVES = [
     ...QUESTS.map(([key, name, requires]) => ({ key, name, category: ObjectiveCategory.QUEST, requires })),
     // 4.7 Gale fork's Omode:external
     ...[["internal_external", "Complete external goal and use EagleEye"]].map(([key, name]) => ({ key, name, category: ObjectiveCategory.MODE })),
-].map((objective, id) => ({ id, requires: [], ...objective }));
+].map((objective, id) => ({ id, ...objective, requires: objective.requires ?? [] }));
 
 export const ObjectiveId = Object.freeze({
     CLASSIC_FORGE: 0,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { KeyItem } from '../data/keyItems';
 import { CharacterCheck, KeyItemCheck, Trap } from '../data/locations';
-import { ObjectiveCategory, objectiveByKey } from '../data/objectives';
+import { OBJECTIVES, ObjectiveCategory, objectiveByKey } from '../data/objectives';
 import { DEFAULT_SETTINGS } from '../state/settings';
 import { initialTrackerState, trackerReducer } from '../state/trackerReducer';
 import {
@@ -164,6 +164,13 @@ describe('location availability', () => {
 });
 
 describe('go mode', () => {
+    it('handles every objective, including ones that need no key items', () => {
+        expect(OBJECTIVES.every((o) => Array.isArray(o.requires))).toBe(true);
+        // Reported failing: quest_ordeals has no key item requirements.
+        const { flags, state } = setup('O1:quest_monsterking/2:quest_ordeals/random:5,tough_quest/random2:2,quest,boss/req:7/hardreq:1,2/win:crystal Kmain/moon/nofree:dwarf/unreliabledark/start:legend Pkey Crelaxed/noearned/distinct:7/start:any/no:fusoya/abilities:j/nekkie/nodupes Twildish/playable/maxtier:7/mintier:3 Sstandard/playable/always:sirens,hrglass,bacchus,starveil,cure3,illusion,coffin Bstandard/alt:gauntlet/whichburn/newscriptstats Etoggle Hrandom Gwarp/life/backrow Fweighted Aagnostic Xzonkbonus:10 Zvanilla -kit:better -kit2:freedom -kit3:hero -noadamants -spoon -smith:super,good,spoilsuper -vanilla:miabs -tweak:yanghp');
+        expect(goModeStatus(state, flags).itemStatus[KeyItem.HOOK]).toBe(KeyItemGoStatus.MISSING);
+    });
+
     it('requires the forge items, with Hook or Magma for the underworld', () => {
         const { flags, state } = setup('O1:quest_forge');
         let status = goModeStatus(withKeyItems(state, KeyItem.LEGEND), flags);
