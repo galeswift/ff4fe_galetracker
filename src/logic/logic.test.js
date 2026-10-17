@@ -181,9 +181,71 @@ describe('go mode', () => {
         expect(status.itemStatus[KeyItem.HOOK]).toBe(KeyItemGoStatus.MISSING);
         expect(status.inGoMode).toBe(false);
 
+        // Forge items in hand, but the Crystal win still needs a way to Zeromus.
         status = goModeStatus(withKeyItems(state, KeyItem.LEGEND, KeyItem.ADAMANT, KeyItem.HOOK), flags);
         expect(status.itemStatus[KeyItem.MAGMA_KEY]).toBe(KeyItemGoStatus.NONE);
+        expect(status.itemStatus[KeyItem.PASS]).toBe(KeyItemGoStatus.MISSING);
+        expect(status.itemStatus[KeyItem.DARKNESS_CRYSTAL]).toBe(KeyItemGoStatus.MISSING);
+        expect(status.inGoMode).toBe(false);
+
+        status = goModeStatus(withKeyItems(state, KeyItem.LEGEND, KeyItem.ADAMANT, KeyItem.HOOK, KeyItem.PASS), flags);
+        expect(status.itemStatus[KeyItem.PASS]).toBe(KeyItemGoStatus.MET);
+        expect(status.itemStatus[KeyItem.DARKNESS_CRYSTAL]).toBe(KeyItemGoStatus.NONE);
         expect(status.inGoMode).toBe(true);
+    });
+
+    // Reported: 7 of 9 needed, Rat Tail and Pan never found, Pass and Darkness Crystal in hand.
+    it('only needs enough objectives, not all of them', () => {
+        const PALADIN = 'O1:quest_monsterking/2:quest_ordeals/random:5,tough_quest/random2:2,quest,boss/req:7/hardreq:1,2/win:crystal Kmain/moon/nofree:dwarf/start:legend Pkey';
+        const { flags, state } = setup(PALADIN);
+        const picks = ['quest_traderat', 'quest_tradepan', 'quest_magnes', 'quest_zot', 'quest_baroncastle', 'boss_golbez', 'boss_milon'];
+        let next = apply(state, ...picks.map((key, slot) => ({ type: 'setRandomObjective', group: 'A', slot, slotKey: `A:r${slot}`, objectiveId: idOf(key) })));
+        next = withKeyItems(next, KeyItem.MAGMA_KEY, KeyItem.TWINHARP, KeyItem.EARTH_CRYSTAL, KeyItem.BARON_KEY, KeyItem.PASS, KeyItem.DARKNESS_CRYSTAL);
+        const status = goModeStatus(next, flags);
+        // monsterking, ordeals, magnes, zot, baroncastle, golbez, milon = 7 doable
+        expect(status.inGoMode).toBe(true);
+        expect(status.itemStatus[KeyItem.RAT_TAIL]).toBe(KeyItemGoStatus.NONE);
+        expect(status.itemStatus[KeyItem.PAN]).toBe(KeyItemGoStatus.NONE);
+        expect(status.itemStatus[KeyItem.TWINHARP]).toBe(KeyItemGoStatus.MET);
+    });
+
+    it('needs every hard-required objective to be doable', () => {
+        const { flags, state } = setup('O1:quest_monsterking/2:quest_ordeals/3:quest_magnes/req:2/hardreq:1/win:game');
+        // Ordeals + Magnes make 2, but hard-required Monster King needs the underworld.
+        const status = goModeStatus(withKeyItems(state, KeyItem.TWINHARP), flags);
+        expect(status.inGoMode).toBe(false);
+        expect(status.itemStatus[KeyItem.HOOK]).toBe(KeyItemGoStatus.MISSING);
+        expect(goModeStatus(withKeyItems(state, KeyItem.TWINHARP, KeyItem.HOOK), flags).inGoMode).toBe(true);
+    });
+
+    it('wins outright with win:game, no route to Zeromus needed', () => {
+        const { flags, state } = setup('O1:quest_ordeals/win:game');
+        const status = goModeStatus(state, flags);
+        expect(status.inGoMode).toBe(true);
+        expect(status.itemStatus[KeyItem.PASS]).toBe(KeyItemGoStatus.NONE);
+    });
+
+    it("doesn't count unset random slots", () => {
+        const { flags, state } = setup('Orandom:2/req:all/win:game');
+        expect(goModeStatus(withKeyItems(state, KeyItem.HOOK), flags).inGoMode).toBe(false);
+    });
+
+    it('needs the key item count for key item hunts', () => {
+        const { flags, state } = setup('Omode:ki3/win:game');
+        expect(goModeStatus(withKeyItems(state, KeyItem.HOOK, KeyItem.PAN), flags).inGoMode).toBe(false);
+        expect(goModeStatus(withKeyItems(state, KeyItem.HOOK, KeyItem.PAN, KeyItem.SPOON), flags).inGoMode).toBe(true);
+    });
+
+    it('uses 5.0 group rewards and group requirements', () => {
+        const { flags, state } = setup('OA1:quest_magnes/2:quest_zot OBgroup_a:all/do_all:game');
+        expect(goModeStatus(withKeyItems(state, KeyItem.TWINHARP), flags).inGoMode).toBe(false);
+        expect(goModeStatus(withKeyItems(state, KeyItem.TWINHARP, KeyItem.EARTH_CRYSTAL), flags).inGoMode).toBe(true);
+    });
+
+    it('needs the Crystal and a route when there are no objectives', () => {
+        const { flags, state } = setup('Kmain');
+        expect(goModeStatus(withKeyItems(state, KeyItem.DARKNESS_CRYSTAL), flags).inGoMode).toBe(false);
+        expect(goModeStatus(withKeyItems(state, KeyItem.DARKNESS_CRYSTAL, KeyItem.CRYSTAL), flags).inGoMode).toBe(true);
     });
 
     it('needs the Hook outright when another objective needs it alone', () => {
