@@ -44,5 +44,11 @@ export function KIPanel() {
 export function GoModeBanner() {
     const { state, flags } = useTracker();
     const { inGoMode } = goModeStatus(state, flags);
-    return <div className={"go_mode_banner" + (inGoMode ? " in_go_mode" : "")} aria-hidden={!inGoMode}>Go Mode!</div>;
+    return <div className={"go_mode" + (inGoMode ? " in_go_mode" : "")} aria-hidden={!inGoMode}>
+        <div className="go_mode_banner"><span className="go_mode_text">Go Mode!</span></div>
+        {/* The Enterprise flies back and forth under the banner. */}
+        <div className="go_mode_flight">
+            <span className="go_mode_ship"><img src={asset("images/img_objective.png")} alt="" /></span>
+        </div>
+    </div>;
 }

@@ -165,6 +165,134 @@ button {
   text-transform: none;
 }
 
+/* Presets from each FE site, one tab per branch; categories expand to show their presets. */
+.preset_picker
+{
+  width: 100%;
+}
+
+.preset_branch
+{
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 8px 4px;
+  text-align: left;
+}
+
+.preset_section + .preset_section
+{
+  margin-top: 12px;
+}
+
+.preset_section_header
+{
+  font-size: 15px;
+  color: var(--gray-11);
+  border-bottom: 1px solid var(--gray-a6);
+  padding: 4px 0;
+  margin-bottom: 4px;
+}
+
+/* Category rows are full-width tap targets (44px tall for touch). */
+.preset_category_toggle
+{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 16px;
+  text-align: left;
+}
+
+.preset_category_toggle:hover
+{
+  background-color: var(--gray-a3);
+}
+
+.preset_chevron
+{
+  flex-shrink: 0;
+  color: var(--gray-10);
+  transition: transform 0.15s;
+}
+
+.preset_category.open .preset_chevron
+{
+  transform: rotate(90deg);
+}
+
+.preset_category_name
+{
+  flex: 1;
+}
+
+.preset_count
+{
+  font-size: 13px;
+  color: var(--gray-10);
+  min-width: 2ch;
+  text-align: right;
+}
+
+.preset_buttons
+{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 4px 10px 30px;
+}
+
+.preset_buttons .rt-Button
+{
+  text-transform: none;
+  min-height: 40px;
+  font-size: 15px;
+}
+
+@media only screen and (max-width: 600px) {
+  .preset_buttons
+  {
+    padding-left: 4px;
+  }
+  .preset_buttons .rt-Button
+  {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* The seed's preset, in a light band between the timer and the footer. */
+.preset_band
+{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  /* sit flush against the footer (the panel's 1em gap) */
+  margin-bottom: -1em;
+  padding: 4px;
+  background-color: var(--gray-4);
+  border-top: 1px solid var(--gray-a5);
+}
+
+.preset_band_name
+{
+  font-size: 18px;
+}
+
+.preset_band_branch
+{
+  font-size: 13px;
+  color: var(--gray-11);
+}
+
 /* ---- Party ---- */
 
 .character_root
@@ -404,6 +532,33 @@ button {
   text-decoration: line-through;
 }
 
+/* While a search runs across every category, no single tab is "the" one. */
+.tabs_searching .rt-TabsTriggerInner
+{
+  opacity: 0.5;
+}
+
+.objective_selector_category
+{
+  margin-left: 8px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.objective_name_button
+{
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+
+.objective_name_button:hover .unset
+{
+  color: var(--gray-12);
+  text-decoration: underline;
+}
+
 .objective_popup
 {
   display:flex;
@@ -532,20 +687,104 @@ button {
   color: var(--green-9);
 }
 
+/* fftracker's style: rainbow text in a black, white-outlined box that slides down into view */
+.go_mode
+{
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  opacity: 0;
+  transform: translateY(-24px);
+  transition: all 0.2s ease-in-out;
+  pointer-events: none;
+}
+
 .go_mode_banner
 {
   font-size: 28px;
-  font-weight: 400;
+  font-weight: 800;
   padding: 2px 16px;
   border-radius: 8px;
-  color: white;
-  background: linear-gradient(90deg, var(--green-9), var(--teal-9));
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 0.3s, transform 0.3s;
+  background-color: black;
+  outline: 1px solid white;
+  text-align: center;
 }
 
-.go_mode_banner.in_go_mode
+/* The airship's lane: it flies to one end, turns around, and flies back. */
+.go_mode_flight
+{
+  position: relative;
+  height: 46px;
+  margin-top: 4px;
+}
+
+.go_mode_ship
+{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  animation: go_mode_fly 5s ease-in-out infinite;
+}
+
+.go_mode_ship img
+{
+  display: block;
+  width: 40px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 2px black);
+  animation: go_mode_bob 0.8s ease-in-out infinite alternate;
+}
+
+/* The sprite faces left, so it's mirrored while flying right. */
+@keyframes go_mode_fly
+{
+  0%     { left: 0; transform: scaleX(-1); }
+  49.9%  { left: calc(100% - 40px); transform: scaleX(-1); }
+  50%    { left: calc(100% - 40px); transform: scaleX(1); }
+  100%   { left: 0; transform: scaleX(1); }
+}
+
+@keyframes go_mode_bob
+{
+  from { transform: translateY(0); }
+  to { transform: translateY(4px); }
+}
+
+.go_mode_text
+{
+  /* The gradient is twice the text's width and starts and ends on red, so sliding it by
+     one width loops seamlessly. */
+  background-image: linear-gradient(to left, red, orange, blue, green, yellow, orange, red, orange, blue, green, yellow, orange, red);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 1px 1px rgba(255, 255, 255, 0.371);
+  animation: go_mode_shimmer 2.5s linear infinite;
+}
+
+@keyframes go_mode_shimmer
+{
+  from { background-position: 0% 50%; }
+  to { background-position: -200% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce)
+{
+  .go_mode_text,
+  .go_mode_ship,
+  .go_mode_ship img
+  {
+    animation: none;
+  }
+  .go_mode_ship
+  {
+    left: calc(50% - 20px);
+  }
+}
+
+.go_mode.in_go_mode
 {
   opacity: 1;
   transform: translateY(0);

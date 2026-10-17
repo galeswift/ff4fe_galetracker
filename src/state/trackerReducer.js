@@ -6,9 +6,11 @@ import { elapsedMs, initialTimer, pauseTimer, startTimer } from '../logic/timer'
 
 export const LocationView = Object.freeze({ UNCHECKED: 'unchecked', CHECKED: 'checked' });
 
-export function initialTrackerState(flagset, flags) {
+export function initialTrackerState(flagset, flags, preset = null) {
     return {
         flagset,
+        // { name, branch } when the flags are one of the sites' presets
+        preset,
         // 5.0 Kstart: begins with that key item found.
         keyItems: KEY_ITEMS.map((k) => (flags.keyItems.start.includes(k.id) ? KeyItemState.FOUND : KeyItemState.NONE)),
         // { [checkId]: { time } } — time is the timer reading when checked, or null.
@@ -50,7 +52,7 @@ const timestamp = (state) => (state.timer.running ? elapsedMs(state.timer) : nul
 export function trackerReducer(state, action) {
     switch (action.type) {
         case 'reset':
-            return initialTrackerState(action.flagset, action.flags);
+            return initialTrackerState(action.flagset, action.flags, action.preset ?? null);
 
         case 'cycleKeyItem': {
             const keyItems = [...state.keyItems];

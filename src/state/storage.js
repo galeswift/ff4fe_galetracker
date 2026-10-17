@@ -22,4 +22,5 @@ export const StorageKey = Object.freeze({
     FLAGSET: 'saved_flagset',
     SETTINGS: 'saved_settings',
     TRACKER: 'saved_tracker',
+    PRESET_BRANCH: 'saved_presetBranch',
 });

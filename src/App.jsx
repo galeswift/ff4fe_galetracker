@@ -11,6 +11,7 @@ import { BossPanel } from './BossPanel';
 import { FlagScreen } from './FlagScreen';
 import { Footer } from './Footer';
 import { parseFlags } from './logic/flags';
+import { findPreset } from './logic/presets';
 import { DEFAULT_SETTINGS } from './state/settings';
 import { load, save, StorageKey } from './state/storage';
 import { hasSavedTracker, TrackerProvider, useTracker } from './state/TrackerContext';
@@ -39,7 +40,18 @@ function TrackingMode() {
         </>}
         <Separator size="4" />
         <TimerPanel />
+        <PresetBand />
     </>;
+}
+
+// Which preset this seed's flags came from, under the timer.
+function PresetBand() {
+    const { state } = useTracker();
+    if (!state.preset) return null;
+    return <div className="preset_band">
+        <span className="preset_band_name">{state.preset.name}</span>
+        <span className="preset_band_branch">{state.preset.branch}</span>
+    </div>;
 }
 
 function TrackerScreens({ settings, onSettingsChanged, onDarkModeChanged }) {
@@ -54,7 +66,8 @@ function TrackerScreens({ settings, onSettingsChanged, onDarkModeChanged }) {
     };
 
     const startTracker = () => {
-        dispatch({ type: 'reset', flagset, flags: parseFlags(flagset) });
+        const preset = findPreset(flagset, load(StorageKey.PRESET_BRANCH, 'fork'));
+        dispatch({ type: 'reset', flagset, flags: parseFlags(flagset), preset });
         setHasTracker(true);
         setTrackingMode(true);
     };

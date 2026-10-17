@@ -38,14 +38,22 @@ function ObjectiveTags({ item }) {
     </>;
 }
 
-function ObjectiveRow({ item, children, extra }) {
+// With `onNameClick`, clicking the name runs that instead of toggling the switch.
+function ObjectiveRow({ item, children, extra, onNameClick }) {
     const { dispatch } = useTracker();
+    const toggle = <Switch color="green" checked={item.done} onCheckedChange={() => dispatch({ type: 'toggleObjective', slotKey: item.slotKey })} />;
     return <div className={"objective_single_root" + (item.done ? " completed" : "")}>
-        <label className="objective_text">
-            <Switch color="green" checked={item.done} onCheckedChange={() => dispatch({ type: 'toggleObjective', slotKey: item.slotKey })} />
-            <span className="objective_name">{children}</span>
-            <ObjectiveTags item={item} />
-        </label>
+        {onNameClick
+            ? <span className="objective_text">
+                {toggle}
+                <button className="objective_name objective_name_button" onClick={onNameClick}>{children}</button>
+                <ObjectiveTags item={item} />
+            </span>
+            : <label className="objective_text">
+                {toggle}
+                <span className="objective_name">{children}</span>
+                <ObjectiveTags item={item} />
+            </label>}
         {item.time != null && <span className="timestamp">{formatTime(item.time)}</span>}
         {extra}
     </div>;
@@ -71,6 +79,8 @@ function CollectRow({ item }) {
     return <AutoRow item={item} extra={<>{progress}{counter}</>}>{objectiveItemName(item)}</AutoRow>;
 }
 
+const CATEGORY_LABELS = Object.fromEntries(RANDOM_CATEGORIES.map(({ category, label }) => [category, label]));
+
 // Character keys a random slot may pick when the fork's Orandom:only<char> limits it.
 const onlyCharacterKeys = (onlyCharacters) => onlyCharacters && new Set(onlyCharacters.map((id) => `char_${CHARACTERS[id].flag.toLowerCase()}`));
 
@@ -79,22 +89,24 @@ function ObjectivePicker({ categories, onlyCharacters, onPick }) {
     const [category, setCategory] = useState(allowed[0]?.category ?? ObjectiveCategory.QUEST);
     const [filter, setFilter] = useState('');
 
+    const words = filter.toLowerCase().split(' ').filter((w) => w !== '');
+    // While searching, look through every category this slot allows, not just the open tab.
+    const searching = words.length > 0;
     const matches = useMemo(() => {
-        const words = filter.toLowerCase().split(' ').filter((w) => w !== '');
         const onlyKeys = onlyCharacterKeys(onlyCharacters);
         return OBJECTIVES
-            .filter((o) => o.category === category)
+            .filter((o) => (searching ? categories[o.category] : o.category === category))
             .filter((o) => o.category !== ObjectiveCategory.CHARACTER || !onlyKeys || onlyKeys.has(o.key))
             .filter((o) => words.every((w) => o.name.toLowerCase().includes(w)))
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [category, filter, onlyCharacters]);
+    }, [category, filter, onlyCharacters, categories]);
 
     const onKeyDown = (event) => {
         if (event.key === 'Enter' && matches.length > 0) onPick(matches[0].id);
     };
 
     return <div className="objective_picker">
-        <Tabs.Root value={category} onValueChange={setCategory}>
+        <Tabs.Root value={category} onValueChange={(value) => { setCategory(value); setFilter(''); }} className={searching ? "tabs_searching" : ""}>
             <Tabs.List size="1">
                 {RANDOM_CATEGORIES.map(({ category: c, label }) => {
                     const disabled = !categories[c];
@@ -107,7 +119,11 @@ function ObjectivePicker({ categories, onlyCharacters, onPick }) {
             <TextField.Slot><MagnifyingGlassIcon height="16" width="16" /></TextField.Slot>
         </TextField.Root>
         <div className="objective_popup">
-            {matches.map((o) => <button key={o.id} className="objective_selector_item" onClick={() => onPick(o.id)}>{o.name}</button>)}
+            {matches.map((o) => <button key={o.id} className="objective_selector_item" onClick={() => onPick(o.id)}>
+                {o.name}
+                {searching && <span className="objective_selector_category">{CATEGORY_LABELS[o.category]}</span>}
+            </button>)}
+            {matches.length === 0 && <div className="empty_note">No matching objectives</div>}
         </div>
     </div>;
 }
@@ -130,8 +146,9 @@ function RandomObjectiveRow({ group, item }) {
         </Popover.Content>
     </Popover.Root>;
 
-    return <ObjectiveRow item={item} extra={picker}>
-        {item.id === null ? <span className="unset">[Set Random Objective {item.slot + 1}]</span> : OBJECTIVES[item.id].name}
+    const unset = item.id === null;
+    return <ObjectiveRow item={item} extra={picker} onNameClick={unset ? () => setOpen(true) : undefined}>
+        {unset ? <span className="unset">[Set Random Objective {item.slot + 1}]</span> : OBJECTIVES[item.id].name}
     </ObjectiveRow>;
 }
 

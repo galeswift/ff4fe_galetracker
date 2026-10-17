@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import PRESET_DATA from '../data/presets.json';
+import { findPreset, sameFlags } from './presets';
 import { KeyItem } from '../data/keyItems';
 import { CharacterCheck, KeyItemCheck, Trap } from '../data/locations';
 import { OBJECTIVES, ObjectiveCategory, objectiveByKey } from '../data/objectives';
@@ -414,5 +416,17 @@ describe('4.7 Gale fork flags', () => {
         const sections = readableSections('Kmain/pink/nofree:dwarf Cstandard/paladin -doorsrando:all');
         expect(sections.find((s) => s.title === 'Key Items').entries).toEqual(['Randomize key items', 'Pink Tail trades for a key item', 'Move key item from Toroia to Dwarf Castle']);
         expect(sections.find((s) => s.title === 'Other').entries).toEqual(['All Doors shuffled']);
+    });
+});
+
+describe('presets', () => {
+    it('finds the preset for a flagset, preferring the chosen branch', () => {
+        const paladin = PRESET_DATA.branches.find((b) => b.id === 'fork').sections[0].categories[0].presets[0];
+        expect(findPreset(`  ${paladin.flags.toUpperCase()} `, 'fork')).toEqual({ name: paladin.name, branch: 'Galeswift 4.7' });
+        expect(findPreset('Kmain Pkey', 'fork')).toBe(null);
+        // The same flags on several sites: the chosen branch wins.
+        const shared = PRESET_DATA.branches.find((b) => b.id === 'main').sections[0].categories[0].presets[0].flags;
+        const branchesWithIt = PRESET_DATA.branches.filter((b) => b.sections.some((s) => s.categories.some((c) => c.presets.some((p) => sameFlags(p.flags, shared)))));
+        for (const branch of branchesWithIt) expect(findPreset(shared, branch.id).branch).toBe(branch.name);
     });
 });

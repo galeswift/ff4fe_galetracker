@@ -23,7 +23,7 @@ function FlagsDialog() {
     // Names come from Free Enterprise's flag spec (src/data/flagNames.json).
     const sections = useMemo(() => readableSections(state.flagset), [state.flagset]);
     return <Dialog.Root>
-        <Dialog.Trigger><Button size="2">Show Flags</Button></Dialog.Trigger>
+        <Dialog.Trigger><Button size="2">Flags Description</Button></Dialog.Trigger>
         <Dialog.Content maxWidth="560px">
             <Dialog.Title>Flags</Dialog.Title>
             {sections.map((section) => <div key={section.title} className="flag_section">
@@ -38,7 +38,7 @@ function FlagsDialog() {
 export function Footer({ inTrackingMode, canTrack, onDarkModeChanged, onTrackingModeChanged }) {
     return <div className="root_footer">
         <Button size="2" onClick={onDarkModeChanged}>Dark Mode</Button>
-        {(inTrackingMode || canTrack) && <Button size="2" onClick={onTrackingModeChanged}>{inTrackingMode ? "Flags" : "Tracker"}</Button>}
+        {(inTrackingMode || canTrack) && <Button size="2" onClick={onTrackingModeChanged}>{inTrackingMode ? "Edit Flags" : "Tracker"}</Button>}
         {inTrackingMode && <NotesDialog />}
         {inTrackingMode && <FlagsDialog />}
         <Button size="2" asChild><a href={FEEDBACK_URL} target="_blank" rel="noreferrer">Feedback</a></Button>
