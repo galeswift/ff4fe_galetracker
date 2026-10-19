@@ -12,6 +12,7 @@ import { FlagScreen } from './FlagScreen';
 import { Footer } from './Footer';
 import { parseFlags } from './logic/flags';
 import { findPreset } from './logic/presets';
+import { randomObjectivesFromRom, readRomMetadata, RomMetadataError } from './logic/romMetadata';
 import { DEFAULT_SETTINGS } from './state/settings';
 import { load, save, StorageKey } from './state/storage';
 import { hasSavedTracker, TrackerProvider, useTracker } from './state/TrackerContext';
@@ -59,24 +60,55 @@ function TrackerScreens({ settings, onSettingsChanged, onDarkModeChanged }) {
     const [flagset, setFlagset] = useState(() => load(StorageKey.FLAGSET, ''));
     const [hasTracker, setHasTracker] = useState(hasSavedTracker);
     const [inTrackingMode, setTrackingMode] = useState(hasTracker);
-
+    const [lastRomMetadata, setLastRomMetadata] = useState(null);
     const onFlagsetChanged = (value) => {
+        setLastRomMetadata(null);        
         setFlagset(value);
+        setRomError(null);
         save(StorageKey.FLAGSET, value);
     };
 
-    const startTracker = () => {
-        const preset = findPreset(flagset, load(StorageKey.PRESET_BRANCH, 'fork'));
-        dispatch({ type: 'reset', flagset, flags: parseFlags(flagset), preset });
+    const onResetFlags = () => {
+        onFlagsetChanged('');
+        dispatch({ type: 'reset', flagset: '', flags: parseFlags(''), preset: null, random: null });
+        setHasTracker(false);
+        setTrackingMode(false);        
+    }
+
+    const [romError, setRomError] = useState(null);
+    
+    const startTracker = (flagsToUse = flagset) => {
+        const preset = findPreset(flagsToUse, load(StorageKey.PRESET_BRANCH, 'fork'));        
+        const random = lastRomMetadata ? randomObjectivesFromRom(lastRomMetadata, parseFlags(lastRomMetadata.flags)) : null;
+        dispatch({ type: 'reset', flagset: flagsToUse, flags: parseFlags(flagsToUse), preset, random });
         setHasTracker(true);
         setTrackingMode(true);
+    };
+
+    // A seed ROM carries its flags and objective list: start a tracker with the random objectives filled in.
+    // The file is read in the browser only.
+    const loadRom = async (file) => {
+        setRomError(null);
+        try {
+            const meta = readRomMetadata(new Uint8Array(await file.arrayBuffer()));
+            if (!meta.flags) {
+                throw new RomMetadataError(meta.flagsHidden
+                    ? "This seed hides its flags, so the tracker can't set itself up from the ROM. Paste the flags instead."
+                    : "No flags found in this ROM.");
+            }
+            onFlagsetChanged(meta.flags);
+            setLastRomMetadata(meta);
+        } catch (error) {
+            if (!(error instanceof RomMetadataError)) console.error('Loading the seed ROM failed', error);
+            setRomError(error instanceof RomMetadataError ? error.message : "Couldn't read that file.");
+        }
     };
 
     return <div className="root_panel">
         {inTrackingMode
             ? <TrackingMode />
             : <FlagScreen flagset={flagset} onFlagsetChanged={onFlagsetChanged} settings={settings} onSettingsChanged={onSettingsChanged}
-                onStart={startTracker} canResume={hasTracker} onResume={() => setTrackingMode(true)} />}
+                onStart={() => startTracker()} onReset={() => onResetFlags()} onLoadRom={loadRom} romError={romError} />}
         <Footer inTrackingMode={inTrackingMode} onDarkModeChanged={onDarkModeChanged}
             onTrackingModeChanged={() => setTrackingMode(!inTrackingMode)} canTrack={hasTracker} />
     </div>;

@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import VALID_FLAGS from '../data/validFlags.json';
+import { checkFlags, unknownFlags } from './flagCheck';
+import ALPHA_METADATA from './fixtures/alpha-metadata.json';
+import { randomObjectivesFromRom, readRomMetadata, RomMetadataError } from './romMetadata';
 import PRESET_DATA from '../data/presets.json';
 import { findPreset, sameFlags } from './presets';
 import { KeyItem } from '../data/keyItems';
@@ -490,5 +494,80 @@ describe('presets', () => {
         const shared = PRESET_DATA.branches.find((b) => b.id === 'main').sections[0].categories[0].presets[0].flags;
         const branchesWithIt = PRESET_DATA.branches.filter((b) => b.sections.some((s) => s.categories.some((c) => c.presets.some((p) => sameFlags(p.flags, shared)))));
         for (const branch of branchesWithIt) expect(findPreset(shared, branch.id).branch).toBe(branch.name);
+    });
+});
+
+describe('seed ROM metadata', () => {
+    // A ROM-sized buffer with FE's metadata document at 0x1FF000 (optionally behind a 512-byte header).
+    function fakeRom(doc, header = 0) {
+        const json = new TextEncoder().encode(JSON.stringify(doc));
+        const bytes = new Uint8Array(header + 0x200000);
+        const at = header + 0x1FF000;
+        new DataView(bytes.buffer).setUint32(at, json.length, true);
+        bytes.set(json, at + 4);
+        return bytes;
+    }
+
+    it('reads a 5.0 alpha ROM and fills each group\'s random objectives by key', () => {
+        const meta = readRomMetadata(fakeRom(ALPHA_METADATA));
+        expect(meta.version).toBe('v5.0.0-a.3');
+        const flags = parseFlags(meta.flags);
+        const random = randomObjectivesFromRom(meta, flags);
+        expect(random.A).toEqual(['quest_tradepink', 'quest_forge', 'quest_magnes', 'quest_monsterqueen'].map(idOf));
+        expect(random.B).toEqual(['char_cecil', 'char_fusoya', 'char_rydia', 'char_yang'].map(idOf));
+        // Group C's first task is its fixed collect_boss13; the four random bosses follow.
+        expect(random.C).toEqual(['boss_milonz', 'boss_dmist', 'boss_antlion', 'boss_fabulgauntlet'].map(idOf));
+        expect(random.D).toEqual([]);
+        const state = initialTrackerState(meta.flags, flags, null, random);
+        expect(state.objectives.random.C[3]).toBe(idOf('boss_fabulgauntlet'));
+    });
+
+    it("reads the fork's flat objective text after the fixed ones, with a copier header", () => {
+        const flagset = 'O1:quest_monsterking/2:quest_ordeals/random:2,tough_quest/random2:1,boss/req:4/hardreq:1/win:crystal Kmain';
+        const doc = {
+            version: 'v4.7.0.Gale', flags: flagset, seed: 'X',
+            objectives: ['Defeat the king at the Town of Monsters', 'Complete Mt. Ordeals',
+                "Break Dark Elf's spell with the TwinHarp", 'Trade away the Pink Tail', 'Defeat Milon Z.'],
+        };
+        const meta = readRomMetadata(fakeRom(doc, 512));
+        expect(randomObjectivesFromRom(meta, parseFlags(meta.flags))).toEqual({ A: ['quest_music', 'quest_tradepink', 'boss_milonz'].map(idOf) });
+    });
+
+    it('reports hidden flags and non-FE files', () => {
+        const hidden = readRomMetadata(fakeRom({ version: 'v4.7.0.Gale', flags: '(hidden)', binary_flags: '(hidden)', seed: 'X' }));
+        expect(hidden).toMatchObject({ flags: null, flagsHidden: true });
+        expect(() => readRomMetadata(new Uint8Array(0x200000))).toThrow(RomMetadataError);
+        expect(() => readRomMetadata(new Uint8Array(100))).toThrow(RomMetadataError);
+    });
+});
+
+describe('flag check', () => {
+    it('reports typos against the version the flags fit', () => {
+        expect(checkFlags('Kmain/moom Pkey', VALID_FLAGS)).toEqual({ branch: 'fork', branchName: 'Galeswift 4.7', unknown: ['Kmoom'] });
+        expect(checkFlags('O1:quest_magnus/req:all Cstandard/no:telah', VALID_FLAGS).unknown).toEqual(['O1:quest_magnus', 'Cno:telah']);
+        const alpha = checkFlags('OA1:quest_forge/random:3,bosss/do_all:crystal Kmain/char', VALID_FLAGS, true);
+        expect(alpha).toMatchObject({ branch: 'alpha', unknown: ['OArandom:bosss'] });
+        expect(checkFlags('   ', VALID_FLAGS)).toBe(null);
+    });
+
+    it('accepts the reported 4.7 flagset, including fork-only flags', () => {
+        expect(checkFlags('O1:quest_monsterking/2:quest_ordeals/random:5,tough_quest/random2:2,quest,boss/req:7/hardreq:1,2/win:crystal Kmain/moon/nofree:dwarf/unreliabledark/start:legend Pkey Crelaxed/noearned/distinct:7/start:any/no:fusoya/abilities:j/nekkie/nodupes Twildish/playable/maxtier:7/mintier:3 Sstandard/playable/always:sirens,hrglass,bacchus,starveil,cure3,illusion,coffin Bstandard/alt:gauntlet/whichburn/newscriptstats Etoggle Hrandom Gwarp/life/backrow Fweighted Aagnostic Xzonkbonus:10 Zvanilla -kit:better -kit2:freedom -kit3:hero -noadamants -spoon -smith:super,good,spoilsuper -vanilla:miabs -tweak:yanghp', VALID_FLAGS))
+            .toMatchObject({ branch: 'fork', unknown: [] });
+    });
+
+    it("finds nothing in the sites' presets beyond their known problems", () => {
+        // Old spellings the sites' own validators don't list (e.g. the fork wants Cabilities:j),
+        // and a typo in "Push B to Jump" (-spoon- smith:super).
+        const KNOWN = new Set(['Cj:abilities', 'Cj:spells', 'Kmiab', '-vanilla:fusoya', '-supersmith', 'Nnone', '-spoon-', 'smith:super']);
+        for (const branch of PRESET_DATA.branches) {
+            for (const section of branch.sections) {
+                for (const category of section.categories) {
+                    for (const preset of category.presets) {
+                        const unexpected = unknownFlags(preset.flags, branch.id, VALID_FLAGS).filter((f) => !KNOWN.has(f));
+                        expect(unexpected, `${branch.id} / ${preset.name}`).toEqual([]);
+                    }
+                }
+            }
+        }
     });
 });

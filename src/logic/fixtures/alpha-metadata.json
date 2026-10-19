@@ -1,0 +1,96 @@
+{
+ "version": "v5.0.0-a.3",
+ "flags": "OArandom:4,tough_quest/do_2:spoon/do_4:superweapon OBrandom:4,char/do_2:ribbon/do_4:adamantarmor OC1:collect_boss13/random:4,boss/do_3:siren/do_5:cursedring ODgroup_a:all/group_b:all/group_c:all/do_2:crystal Kmain/summon/moon/miab:lst/char/nofree Pkey Cstandard/nofree/nogiant/distinct:8/start:any/j:abilities/nekkie/nodupes/hero Tpro/playable Sstandard/playable/no:sirens Bchaos/alt:gauntlet/chaosburn Etoggle Xobjbonus:5 Gwarp/life/sylph/backrow Qfastrom/msgspeedfix -kit:better -noadamants -nocursed -smith:alt,playable",
+ "binary_flags": "cBQAKIAEMAAEHAA5ACCABagAGIgEAB4gAAYANIAMADMD_AwABBAAccFQAAVRBAAEIAAYc0AIAAYCCAAEYAAQcAAHAAAJvAcAM",
+ "seed": "5XPZB9Q943",
+ "objectives": [
+  {
+   "key": "objectives_a",
+   "name": "Objective Group A",
+   "tasks": [
+    "quest_tradepink",
+    "quest_forge",
+    "quest_magnes",
+    "quest_monsterqueen"
+   ],
+   "rewards": [
+    {
+     "description": "Complete 2 objectives to win [knife]Spoon",
+     "req": 2
+    },
+    {
+     "description": "Complete all objectives to win a special weapon",
+     "req": "all"
+    }
+   ]
+  },
+  {
+   "key": "objectives_b",
+   "name": "Objective Group B",
+   "tasks": [
+    "char_cecil",
+    "char_fusoya",
+    "char_rydia",
+    "char_yang"
+   ],
+   "rewards": [
+    {
+     "description": "Complete 2 objectives to win [helmet]Ribbon",
+     "req": 2
+    },
+    {
+     "description": "Complete all objectives to win [armor]Adamant",
+     "req": "all"
+    }
+   ]
+  },
+  {
+   "key": "objectives_c",
+   "name": "Objective Group C",
+   "tasks": [
+    {
+     "objective": "internal_bossfight",
+     "threshold": 13
+    },
+    "boss_milonz",
+    "boss_dmist",
+    "boss_antlion",
+    "boss_fabulgauntlet"
+   ],
+   "rewards": [
+    {
+     "description": "Complete 3 objectives to win Siren",
+     "req": 3
+    },
+    {
+     "description": "Complete all objectives to win [ring]Cursed",
+     "req": "all"
+    }
+   ]
+  },
+  {
+   "key": "objectives_d",
+   "name": "Objective Group D",
+   "tasks": [
+    {
+     "group": "objectives_a",
+     "req": "all"
+    },
+    {
+     "group": "objectives_b",
+     "req": "all"
+    },
+    {
+     "group": "objectives_c",
+     "req": "all"
+    }
+   ],
+   "rewards": [
+    {
+     "description": "Complete 2 objectives to win [crystal]Crystal",
+     "req": 2
+    }
+   ]
+  }
+ ]
+}

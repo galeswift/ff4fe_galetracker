@@ -165,6 +165,42 @@ button {
   text-transform: none;
 }
 
+.flag_check
+{
+  width: 100%;
+  margin-top: -6px;
+  text-align: left;
+}
+
+/* Show the flags exactly as typed (the page uppercases text everywhere else). */
+.flag_check,
+.flag_check *
+{
+  text-transform: none;
+}
+
+.rom_loader
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.rom_loader_help,
+.rom_loader_error
+{
+  text-transform: none;
+}
+
+.flagset_mode_root.dragging
+{
+  outline: 2px dashed var(--green-9);
+  outline-offset: -8px;
+  border-radius: 8px;
+}
+
 /* Presets from each FE site, one tab per branch; categories expand to show their presets. */
 .preset_picker
 {

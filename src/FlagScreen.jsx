@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Button, Switch, Tabs, Text } from '@radix-ui/themes';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 import PRESETS from './data/presets.json';
 import { sameFlags } from './logic/presets';
+import { checkFlags } from './logic/flagCheck';
+import { parseFlags } from './logic/flags';
+import VALID_FLAGS from './data/validFlags.json';
 import { SETTING_DESCRIPTIONS } from './state/settings';
 import { load, save, StorageKey } from './state/storage';
 
@@ -47,17 +50,56 @@ function PresetPicker({ flagset, onPick }) {
     </Tabs.Root>;
 }
 
-export function FlagScreen({ flagset, onFlagsetChanged, settings, onSettingsChanged, onStart, canResume, onResume }) {
-    const setSetting = (key, value) => onSettingsChanged({ ...settings, [key]: value });
+// Load a seed ROM by button or by dropping it anywhere on the flag screen.
+function RomLoader({ onLoadRom, error }) {
+    const input = useRef(null);
+    return <div className="rom_loader">
+        <Button size="3" variant="solid" onClick={() => input.current.click()}>Upload ROM</Button>        
+        {error && <Text size="2" color="red" className="rom_loader_error">{error}</Text>}
+        <input ref={input} type="file" accept=".smc,.sfc" hidden
+            onChange={(event) => { if (event.target.files[0]) onLoadRom(event.target.files[0]); event.target.value = ''; }} />
+    </div>;
+}
 
-    return <div className="flagset_mode_root">
+// Flags none of the FE sites would accept, checked against the version they fit best.
+function FlagCheck({ flagset }) {
+    const result = useMemo(() => checkFlags(flagset, VALID_FLAGS, parseFlags(flagset).version50), [flagset]);
+    if (!result) return null;
+    if (result.unknown.length === 0) {
+        return <Text as="div" size="2" color="green" className="flag_check">All flags recognised for {result.branchName}</Text>;
+    }
+    return <div className="flag_check">
+        {result.unknown.map((flag) => <Text key={flag} as="div" size="2" color="amber">Unknown flag {flag} for {result.branchName}</Text>)}
+    </div>;
+}
+
+export function FlagScreen({ flagset, onFlagsetChanged, settings, onSettingsChanged, onStart, onReset, onLoadRom, romError }) {
+    const setSetting = (key, value) => onSettingsChanged({ ...settings, [key]: value });
+    const [dragging, setDragging] = useState(false);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const onDrop = (event) => {
+        event.preventDefault();
+        setDragging(false);
+        const file = event.dataTransfer.files[0];
+        if (file) onLoadRom(file);
+    };
+
+    const onTryReset = () => { setShowResetConfirm(true); };
+
+    return <div className={"flagset_mode_root" + (dragging ? " dragging" : "")}
+        onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+        onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
+        onDrop={onDrop}>
         <header className="section_header">Enter Flagset</header>
         <textarea className="flagset_text_area" placeholder="Enter Flagset Here" value={flagset}
             onChange={(event) => onFlagsetChanged(event.target.value)} />
+        <FlagCheck flagset={flagset} />
 
         <div className="flag_buttons">
-            <Button size="3" onClick={onStart} disabled={flagset.trim() === ''}>Start New Tracker</Button>
-            {canResume && <Button size="3" variant="soft" onClick={onResume}>Back to Current Tracker</Button>}
+            <RomLoader onLoadRom={onLoadRom} error={romError} />
+            <Button size="3" onClick={onStart} disabled={flagset.trim() === ''}>Apply Flags</Button>            
+            {!showResetConfirm && <Button size="3" onClick={onTryReset}>Reset All</Button> }
+            {showResetConfirm && <Button size="3" onClick={() => { onReset(); setShowResetConfirm(false); }}>Are you sure?</Button>}
         </div>
 
         <header className="section_header">Presets</header>

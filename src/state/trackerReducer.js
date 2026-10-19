@@ -6,7 +6,9 @@ import { elapsedMs, initialTimer, pauseTimer, startTimer } from '../logic/timer'
 
 export const LocationView = Object.freeze({ UNCHECKED: 'unchecked', CHECKED: 'checked' });
 
-export function initialTrackerState(flagset, flags, preset = null) {
+// `random` optionally pre-fills random objective slots ({ [groupId]: [objectiveId | null] }),
+// e.g. from a seed ROM.
+export function initialTrackerState(flagset, flags, preset = null, random = null) {
     return {
         flagset,
         // { name, branch } when the flags are one of the sites' presets
@@ -24,7 +26,8 @@ export function initialTrackerState(flagset, flags, preset = null) {
             // { [slotKey]: { time } } for objectives checked off by hand; see logic/objectives.js for slot keys.
             completed: {},
             // { [groupId]: [objectiveId | null, ...] } — what each random slot turned out to be.
-            random: Object.fromEntries(flags.objectives.groups.map((g) => [g.id, Array(randomSlotCount(g)).fill(null)])),
+            random: Object.fromEntries(flags.objectives.groups.map((g) => [g.id,
+                Array.from({ length: randomSlotCount(g) }, (_, slot) => random?.[g.id]?.[slot] ?? null)])),
             darkMatter: 0,
             // Shared counts for collect_boss / collect_chest / collect_gp (GP in thousands).
             counters: { boss: 0, chest: 0, gp: 0 },
@@ -52,7 +55,7 @@ const timestamp = (state) => (state.timer.running ? elapsedMs(state.timer) : nul
 export function trackerReducer(state, action) {
     switch (action.type) {
         case 'reset':
-            return initialTrackerState(action.flagset, action.flags, action.preset ?? null);
+            return initialTrackerState(action.flagset, action.flags, action.preset ?? null, action.random ?? null);
 
         case 'cycleKeyItem': {
             const keyItems = [...state.keyItems];
