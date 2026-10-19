@@ -35,12 +35,15 @@ function FlagsDialog() {
     </Dialog.Root>;
 }
 
-export function Footer({ inTrackingMode, canTrack, onDarkModeChanged, onTrackingModeChanged }) {
+export function Footer({ inTrackingMode, onTrackingModeChanged }) {
     return <div className="root_footer">
-        <Button size="2" onClick={onDarkModeChanged}>Dark Mode</Button>
-        {(inTrackingMode || canTrack) && <Button size="2" onClick={onTrackingModeChanged}>{inTrackingMode ? "Edit Flags" : "Tracker"}</Button>}
+        {<Button size="2" onClick={onTrackingModeChanged}>{inTrackingMode ? "Edit Flags" : "Tracker"}</Button>}
         {inTrackingMode && <NotesDialog />}
         {inTrackingMode && <FlagsDialog />}
-        <Button size="2" asChild><a href={FEEDBACK_URL} target="_blank" rel="noreferrer">Feedback</a></Button>
     </div>;
+}
+
+// Small link under everything else, at the very bottom of the page.
+export function FeedbackLink() {
+    return <a className="feedback_link" href={FEEDBACK_URL} target="_blank" rel="noreferrer">Feedback</a>;
 }

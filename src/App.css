@@ -1245,3 +1245,61 @@ button {
   border-bottom: 1px solid var(--gray-a6);
   margin-bottom: 2px;
 }
+
+/* Light/dark switch pinned to the top-right corner, like the draft site's */
+.theme_toggle
+{
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--gray-a7);
+  border-radius: 999px;
+  background-color: var(--gray-a3);
+  color: var(--gray-12);
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.theme_toggle:hover
+{
+  background-color: var(--gray-a5);
+  border-color: var(--gray-a9);
+}
+
+/* Phones: icon only, so it doesn't cover the tracker */
+@media (max-width: 736px)
+{
+  .theme_toggle
+  {
+    padding: 6px;
+  }
+
+  .theme_toggle_label
+  {
+    display: none;
+  }
+}
+
+.feedback_link
+{
+  margin-top: -1em;
+  padding: 6px 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--gray-10);
+  text-decoration: none;
+}
+
+.feedback_link:hover
+{
+  color: var(--gray-12);
+  text-decoration: underline;
+}

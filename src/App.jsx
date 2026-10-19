@@ -9,7 +9,8 @@ import { TimerPanel } from './TimerPanel';
 import { ObjectivePanel } from './ObjectivePanel';
 import { BossPanel } from './BossPanel';
 import { FlagScreen } from './FlagScreen';
-import { Footer } from './Footer';
+import { FeedbackLink, Footer } from './Footer';
+import { ThemeToggle } from './ThemeToggle';
 import { parseFlags } from './logic/flags';
 import { findPreset } from './logic/presets';
 import { randomObjectivesFromRom, readRomMetadata, RomMetadataError } from './logic/romMetadata';
@@ -55,7 +56,7 @@ function PresetBand() {
     </div>;
 }
 
-function TrackerScreens({ settings, onSettingsChanged, onDarkModeChanged }) {
+function TrackerScreens({ settings, onSettingsChanged }) {
     const { dispatch } = useTracker();
     const [flagset, setFlagset] = useState(() => load(StorageKey.FLAGSET, ''));
     const [hasTracker, setHasTracker] = useState(hasSavedTracker);
@@ -109,8 +110,9 @@ function TrackerScreens({ settings, onSettingsChanged, onDarkModeChanged }) {
             ? <TrackingMode />
             : <FlagScreen flagset={flagset} onFlagsetChanged={onFlagsetChanged} settings={settings} onSettingsChanged={onSettingsChanged}
                 onStart={() => startTracker()} onReset={() => onResetFlags()} onLoadRom={loadRom} romError={romError} />}
-        <Footer inTrackingMode={inTrackingMode} onDarkModeChanged={onDarkModeChanged}
+        <Footer inTrackingMode={inTrackingMode}
             onTrackingModeChanged={() => setTrackingMode(!inTrackingMode)} canTrack={hasTracker} />
+        <FeedbackLink />
     </div>;
 }
 
@@ -135,7 +137,8 @@ function App() {
     return (
         <Theme appearance='inherit' accentColor="gray" panelBackground="translucent">
             <TrackerProvider initialFlagset={load(StorageKey.FLAGSET, '')} settings={settings}>
-                <TrackerScreens settings={settings} onSettingsChanged={onSettingsChanged} onDarkModeChanged={onDarkModeChanged} />
+                <ThemeToggle darkMode={darkMode} onDarkModeChanged={onDarkModeChanged} />
+                <TrackerScreens settings={settings} onSettingsChanged={onSettingsChanged} />
             </TrackerProvider>
         </Theme>
     );
